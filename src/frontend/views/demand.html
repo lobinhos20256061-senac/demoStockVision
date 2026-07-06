@@ -1,141 +1,205 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StockVision - Previsão Inteligente de Demanda</title>
-    <link rel="stylesheet" href="../assets/css/global.css">
-    <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../assets/css/stock.css">
-</head>
-<body>
-
+    <link rel="stylesheet" href="../assets/css/global.css" />
+    <link rel="stylesheet" href="../assets/css/dashboard.css" />
+    <link rel="stylesheet" href="../assets/css/stock.css" />
+  </head>
+  <body>
     <div class="dashboard-container">
-        
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <h2>StockVision</h2>
-                <p>Veja o futuro. Controle o resultado.</p>
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <h2>StockVision</h2>
+          <p>Veja o futuro. Controle o resultado.</p>
+        </div>
+        <ul class="sidebar-menu">
+          <li><a href="dashboard.html">📊 Dashboard</a></li>
+          <li><a href="stock.html">📦 Estoque</a></li>
+          <li class="active">
+            <a href="demand.html">🔮 Previsão de Demanda</a>
+          </li>
+          <li><a href="partners.html">🤝 Pedidos & Fornecedores</a></li>
+          <li><a href="reverse.html">♻️ Logística Reversa</a></li>
+          <li><a href="esg.html">🌱 Sustentabilidade (ESG)</a></li>
+          <li class="nav-item">
+            <a
+              href="#"
+              onclick="handleUserLogout()"
+              style="color: #dc3545 !important; font-weight: bold"
+            >
+              ❌ Logout
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <main class="main-content">
+        <header class="top-bar">
+          <div class="user-info">
+            <h3>🔮 Planejamento Preditivo de Demanda (MMP + Giro)</h3>
+            <p id="company-name-display">Análise analítica assistida por IA</p>
+          </div>
+          <button
+            id="theme-toggle"
+            class="theme-btn"
+            aria-label="Alternar tema"
+          >
+            🌓
+          </button>
+        </header>
+
+        <section
+          class="data-section"
+          style="
+            background: rgba(0, 123, 255, 0.03);
+            border: 1px dashed var(--color-primary);
+          "
+        >
+          <h4 style="color: var(--color-primary); margin-bottom: 5px">
+            🧠 Como o Algoritmo de IA funciona?
+          </h4>
+          <p
+            style="
+              font-size: 0.875rem;
+              line-height: 1.4;
+              color: var(--text-secondary);
+            "
+          >
+            O sistema executa um cálculo de
+            <strong>Média Móvel Ponderada (MMP)</strong> sobre o histórico de
+            movimentação, aplicando peso estrito para tendências de mercado de
+            curto prazo. Esse resultado é cruzado em tempo real com o
+            <strong>Giro de Estoque</strong> e o <strong>Lead Time</strong> do
+            parceiro para calcular com exatidão o
+            <em>Ponto de Reposição Crítico</em>, automatizando ordens de compra
+            preventivas contra a ruptura logística.
+          </p>
+        </section>
+
+        <section class="metrics-grid" style="margin-top: 1.5rem">
+          <div class="card">
+            <div class="card-title">Ordens Sugeridas pela IA</div>
+            <div class="card-value" id="total-orders-sug">0</div>
+          </div>
+          <div class="card esg">
+            <div class="card-title">Investimento Total Previsto</div>
+            <div
+              class="card-value"
+              id="total-investment-sug"
+              style="color: var(--color-esg)"
+            >
+              R$ 0,00
             </div>
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.html">📊 Dashboard</a></li>
-                <li><a href="stock.html">📦 Estoque</a></li>
-                <li class="active"><a href="demand.html">🔮 Previsão de Demanda</a></li>
-                <li><a href="partners.html">🤝 Pedidos & Fornecedores</a></li>
-                <li><a href="reverse.html">♻️ Logística Reversa</a></li>
-                <li><a href="esg.html">🌱 Sustentabilidade (ESG)</a></li>
-            </ul>
-        </aside>
+          </div>
+        </section>
 
-        <main class="main-content">
-            <header class="top-bar">
-                <div class="user-info">
-                    <h3>🔮 Planejamento Preditivo de Demanda (MMP + Giro)</h3>
-                    <p id="company-name-display">Análise analítica assistida por IA</p>
-                </div>
-                <button id="theme-toggle" class="theme-btn" aria-label="Alternar tema">🌓</button>
-            </header>
-
-            <section class="data-section" style="background: rgba(0, 123, 255, 0.03); border: 1px dashed var(--color-primary);">
-                <h4 style="color: var(--color-primary); margin-bottom: 5px;">🧠 Como o Algoritmo de IA funciona?</h4>
-                <p style="font-size: 0.875rem; line-height: 1.4; color: var(--text-secondary);">
-                    O sistema executa um cálculo de <strong>Média Móvel Ponderada (MMP)</strong> sobre o histórico de movimentação, aplicando peso estrito para tendências de mercado de curto prazo. Esse resultado é cruzado em tempo real com o <strong>Giro de Estoque</strong> e o <strong>Lead Time</strong> do parceiro para calcular com exatidão o <em>Ponto de Reposição Crítico</em>, automatizando ordens de compra preventivas contra a ruptura logística.
-                </p>
-            </section>
-
-            <section class="metrics-grid" style="margin-top: 1.5rem;">
-                <div class="card">
-                    <div class="card-title">Ordens Sugeridas pela IA</div>
-                    <div class="card-value" id="total-orders-sug">0</div>
-                </div>
-                <div class="card esg">
-                    <div class="card-title">Investimento Total Previsto</div>
-                    <div class="card-value" id="total-investment-sug" style="color: var(--color-esg);">R$ 0,00</div>
-                </div>
-            </section>
-
-            <section class="data-section" style="margin-top: 1.5rem;">
-                <h3>📋 Recomendações Assistidas de Resuprimento</h3>
-                <div class="table-responsive" style="margin-top: 1rem;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Produto</th>
-                                <th>Fornecedor Homologado</th>
-                                <th>Estoque Atual</th>
-                                <th>Ponto de Resuprimento (Mín)</th>
-                                <th>Previsão Demanda (Próx Mês)</th>
-                                <th>Giro de Estoque</th>
-                                <th>Sugestão de Compra</th>
-                                <th>Ação Recomendada</th>
-                            </tr>
-                        </thead>
-                        <tbody id="forecast-table-body">
-                            <tr><td colspan="8" style="text-align: center;">Rodando matrizes e algoritmos preditivos...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
+        <section class="data-section" style="margin-top: 1.5rem">
+          <h3>📋 Recomendações Assistidas de Resuprimento</h3>
+          <div class="table-responsive" style="margin-top: 1rem">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>Fornecedor Homologado</th>
+                  <th>Estoque Atual</th>
+                  <th>Ponto de Resuprimento (Mín)</th>
+                  <th>Previsão Demanda (Próx Mês)</th>
+                  <th>Giro de Estoque</th>
+                  <th>Sugestão de Compra</th>
+                  <th>Ação Recomendada</th>
+                </tr>
+              </thead>
+              <tbody id="forecast-table-body">
+                <tr>
+                  <td colspan="8" style="text-align: center">
+                    Rodando matrizes e algoritmos preditivos...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="../assets/js/theme.js"></script>
     <script src="../assets/js/api.js"></script>
     <script>
-        // Lógica embarcada exclusiva para renderizar a IA reativamente
-        document.addEventListener('DOMContentLoaded', async () => {
-            const tableBody = document.getElementById('forecast-table-body');
-            const totalOrdersSug = document.getElementById('total-orders-sug');
-            const totalInvestmentSug = document.getElementById('total-investment-sug');
-            
-            const activeUser = TokenManager.getUser();
-            if (activeUser) {
-                document.getElementById('company-name-display').innerText = `Análise Corporativa: ${activeUser.company}`;
+      function handleUserLogout() {
+        if (confirm("Deseja realmente encerrar a sessão corporativa?")) {
+          localStorage.removeItem("sv_token");
+          localStorage.removeItem("sv_user");
+          window.location.href = "login.html";
+        }
+      }
+      // Lógica embarcada exclusiva para renderizar a IA reativamente
+      document.addEventListener("DOMContentLoaded", async () => {
+        const tableBody = document.getElementById("forecast-table-body");
+        const totalOrdersSug = document.getElementById("total-orders-sug");
+        const totalInvestmentSug = document.getElementById(
+          "total-investment-sug",
+        );
+
+        const activeUser = TokenManager.getUser();
+        if (activeUser) {
+          document.getElementById("company-name-display").innerText =
+            `Análise Corporativa: ${activeUser.company}`;
+        }
+
+        try {
+          const report = await StockAPI.getDemandForecast();
+          tableBody.innerHTML = "";
+
+          let orderCount = 0;
+          let investmentSum = 0;
+
+          if (report.length === 0) {
+            tableBody.innerHTML =
+              '<tr><td colspan="8" style="text-align: center;">Nenhum produto cadastrado para análise de IA.</td></tr>';
+            return;
+          }
+
+          report.forEach((item) => {
+            const row = document.createElement("tr");
+            const formatCurrency = (v) =>
+              new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(v);
+
+            if (item.sugestaoCompra > 0) {
+              orderCount++;
+              investmentSum += item.investimentoEstimated;
             }
 
-            try {
-                const report = await StockAPI.getDemandForecast();
-                tableBody.innerHTML = '';
-                
-                let orderCount = 0;
-                let investmentSum = 0;
-
-                if (report.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Nenhum produto cadastrado para análise de IA.</td></tr>';
-                    return;
-                }
-
-                report.forEach(item => {
-                    const row = document.createElement('tr');
-                    const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-                    
-                    if (item.sugestaoCompra > 0) {
-                        orderCount++;
-                        investmentSum += item.investimentoEstimated;
-                    }
-
-                    row.innerHTML = `
+            row.innerHTML = `
                         <td><strong>🔮 ${item.name}</strong><br><small style="color:var(--text-secondary)">SKU: ${item.sku}</small></td>
                         <td>${item.supplier}</td>
                         <td><strong>${item.quantityInStock}</strong> un</td>
                         <td>${item.pontoDePedido} un</td>
                         <td>${item.predictedDemand} un/mês</td>
                         <td><span style="font-family:monospace; font-weight:bold;">${item.giroEstoque}x</span></td>
-                        <td style="color:${item.sugestaoCompra > 0 ? '#dc3545' : 'var(--text-primary)'}; font-weight:bold;">
-                            ${item.sugestaoCompra > 0 ? `+${item.sugestaoCompra} un` : '0 un'}
+                        <td style="color:${item.sugestaoCompra > 0 ? "#dc3545" : "var(--text-primary)"}; font-weight:bold;">
+                            ${item.sugestaoCompra > 0 ? `+${item.sugestaoCompra} un` : "0 un"}
                         </td>
                         <td><span class="status-badge ${item.criticidade}">${item.acao}</span></td>
                     `;
-                    tableBody.appendChild(row);
-                });
+            tableBody.appendChild(row);
+          });
 
-                totalOrdersSug.innerText = orderCount;
-                totalInvestmentSug.innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(investmentSum);
-
-            } catch (error) {
-                tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color:var(--color-error)">Falha ao ler o motor preditivo do servidor.</td></tr>';
-            }
-        });
+          totalOrdersSug.innerText = orderCount;
+          totalInvestmentSug.innerText = new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }).format(investmentSum);
+        } catch (error) {
+          tableBody.innerHTML =
+            '<tr><td colspan="8" style="text-align: center; color:var(--color-error)">Falha ao ler o motor preditivo do servidor.</td></tr>';
+        }
+      });
     </script>
-</body>
+  </body>
 </html>

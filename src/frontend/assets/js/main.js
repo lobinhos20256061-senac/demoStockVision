@@ -382,3 +382,22 @@ document.addEventListener('DOMContentLoaded', () => {
         loadInventoryTable();
     }
 });
+
+// =========================================================================
+// 6. CONTROLADOR RESPONSIVO DA GAVETA MÓVEL
+// =========================================================================
+document.addEventListener('click', (e) => {
+    const sidebarElement = document.querySelector('.sidebar');
+    const clickedToggle = e.target.closest('#mobile-menu-btn') || e.target.closest('.menu-toggle-btn');
+    if (clickedToggle && sidebarElement) {
+        e.preventDefault();
+        e.stopPropagation();
+        sidebarElement.classList.toggle('mobile-open');
+        return;
+    }
+    if (sidebarElement && sidebarElement.classList.contains('mobile-open')) {
+        if (!sidebarElement.contains(e.target)) {
+            sidebarElement.classList.remove('mobile-open');
+        }
+    }
+});

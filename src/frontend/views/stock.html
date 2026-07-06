@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockVision - Central de Inventário</title>
+    <title>StockVision - Lançamento e Endereçamento de Insumos</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/stock.css">
@@ -11,191 +11,206 @@
 <body>
 
     <div class="dashboard-container">
+        
+        <!-- 🧭 MENU LATERAL PADRONIZADO E SINCRONIZADO -->
         <aside class="sidebar">
             <div class="sidebar-brand">
                 <h2>StockVision</h2>
-                <p>Veja o futuro. Controle o resultado.</p>
+                <p>Mapeamento de Armazéns NoSQL</p>
             </div>
+            
             <ul class="sidebar-menu">
-                <li><a href="dashboard.html">📊 Dashboard</a></li>
-                <li class="active"><a href="stock.html">📦 Estoque</a></li>
-                <li><a href="demand.html">🔮 Previsão de Demanda</a></li>
-                <li><a href="partners.html">🤝 Pedidos & Fornecedores</a></li>
-                <li><a href="reverse.html">♻️ Logística Reversa</a></li>
-                <li><a href="esg.html">🌱 Sustentabilidade (ESG)</a></li>
+                <li class="nav-item">
+                    <a href="dashboard.html">📊 Dashboard</a>
+                </li>
+                <li class="nav-item active">
+                    <a href="stock.html">📦 Estoque</a>
+                </li>
+                <li class="nav-item">
+                    <a href="sales.html">📈 Curva ABC</a>
+                </li>
+                <li class="nav-item">
+                    <a href="demand.html">🔮 Previsão de Demanda</a>
+                </li>
+                <li class="nav-item">
+                    <a href="partners.html">🤝 Pedidos & Fornecedores</a>
+                </li>
+                <li class="nav-item">
+                    <a href="reverse.html">♻️ Logística Reversa</a>
+                </li>
+                <li class="nav-item">
+                    <a href="esg.html">🌱 Sustentabilidade (ESG)</a>
+                </li>
+                
+                <li style="margin: 2rem 0; border-top: 1px dashed var(--border-color); opacity: 0.5;"></li>
+<!--                 
+                <li class="nav-item">
+                    <a href="profile.html">👤 Perfil e Conta</a>
+                </li> -->
+                <li class="nav-item">
+                    <a href="#" onclick="handleUserLogout()" style="color: #dc3545 !important; font-weight: bold;">
+                        ❌ Logout
+                    </a>
+                </li>
             </ul>
         </aside>
 
+        <!-- ÁREA PRINCIPAL DE CONTEÚDO -->
         <main class="main-content">
+            
+            <!-- 🎯 CABEÇALHO CORRIGIDO COM BOTÃO HAMBÚRGUER -->
             <header class="top-bar">
-                <div class="user-info">
-                    <h3>Central de Gestão de Inventário e Indicadores</h3>
-                    <p id="company-name-display">Carregando...</p>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="menu-toggle-btn" id="mobile-menu-btn" aria-label="Abrir Menu">☰</button>
+                    <div class="user-info">
+                        <h3>📦 Lançamento e Endereçamento de Insumos</h3>
+                        <p id="company-name-display">Almoxarifado Central: Carregando...</p>
+                    </div>
                 </div>
                 <button id="theme-toggle" class="theme-btn" aria-label="Alternar tema">🌓</button>
             </header>
 
-            <section id="details-drawer" class="product-details-drawer">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h4 id="drawer-product-name" style="color: var(--color-primary);">Nome do Produto Selecionado</h4>
-                    <button class="action-icon" onclick="document.getElementById('details-drawer').style.display='none'">❌</button>
-                </div>
-                <div class="drawer-grid">
-                    <div class="card" style="margin:0;">
-                        <small style="color: var(--text-secondary)">Endereço Físico Estruturado (WMS)</small>
-                        <div id="drawer-location" style="font-weight: bold; margin-top: 5px;">...</div>
-                    </div>
-                    <div class="card" style="margin:0;">
-                        <small style="color: var(--text-secondary)">Capital de Giro Estocado</small>
-                        <div id="drawer-turnover" style="font-weight: bold; margin-top: 5px; color: var(--color-esg);">...</div>
-                    </div>
-                    <div class="card" style="margin:0;">
-                        <small style="color: var(--text-secondary)">Status Crítico Operational</small>
-                        <div id="drawer-status-tag" style="font-weight: bold; margin-top: 5px;">...</div>
-                    </div>
-                </div>
-            </section>
-
-            <div class="filter-bar-container">
-                <div class="filter-controls">
-                    <input type="text" id="search-name" placeholder="🔍 Buscar por nome ou SKU...">
-                    <select id="search-category"><option value="">Categorias</option></select>
-                    <select id="search-status">
-                        <option value="">Todos os Statuses</option>
-                        <option value="Normal">Status: Normal</option>
-                        <option value="Ruptura">Status: Ruptura</option>
-                        <option value="Estoque Baixo">Status: Estoque Baixo</option>
-                        <option value="Excesso">Status: Excesso</option>
+            <!-- ⚡ CONTEXTO OPERACIONAL: BARRA DE FILTROS AVANÇADOS E BOTÃO CADASTRO -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.75rem; flex: 1; flex-wrap: wrap;">
+                    <input type="text" id="search-name" placeholder="Pesquisar por material ou SKU..." style="padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); min-width: 220px; outline: none;">
+                    <select id="search-category" style="padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;"></select>
+                    <select id="search-status" style="padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;">
+                        <option value="">Status Operacional</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Estoque Baixo">Estoque Baixo</option>
+                        <option value="Ruptura">Ruptura</option>
+                        <option value="Excesso">Excesso</option>
                     </select>
-                    <input type="number" id="search-max-price" placeholder="💰 Preço Máximo (R$)">
+                    <input type="number" id="search-max-price" placeholder="Preço Máximo (R$)" style="padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); max-width: 150px; outline: none;">
                 </div>
-                <button class="btn" onclick="openCreateModal()">➕ Cadastrar Novo Produto</button>
+                
+                <!-- 🆕 O BOTÃO QUE ESTAVA FALTANDO NO SEU PRINT -->
+                <button class="btn" onclick="openCreateModal()" style="width: auto; padding: 0.6rem 1.5rem; background-color: var(--color-main-blue) !important;">
+                    ➕ Novo Produto
+                </button>
             </div>
 
-            <section class="data-section" style="margin-top: 0;">
-                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+            <!-- MATRIZ DE DADOS DO INVENTÁRIO -->
+            <section class="data-section" style="margin-top: 1.5rem;">
+                <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
-                                <th>Produto / SKU</th>
-                                <th>Endereço Físico WMS</th>
+                                <th>Material / SKU</th>
+                                <th>Endereçamento WMS</th>
                                 <th>Saldo Atual</th>
                                 <th>Preço Venda</th>
-                                <th>Status Logístico</th>
-                                <th style="text-align: center;">Ações Gerenciais</th>
+                                <th>Criticidade</th>
+                                <th style="text-align: center;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="inventory-table-body">
-                            <tr><td colspan="6" style="text-align: center;">Sincronizando posições NoSQL...</td></tr>
+                            <tr>
+                                <td colspan="6" style="text-align: center;">Sincronizando livro de inventário NoSQL...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </section>
+
+            <!-- 📊 SIDE DRAWER: INFORMAÇÕES ADICIONAIS DO PRODUTO -->
+            <div id="details-drawer" class="data-section" style="display: none; margin-top: 1.5rem; border-left: 4px solid var(--color-main-blue);">
+                <h3 id="drawer-product-name">📊 Métricas Individuais</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem;">
+                    <div><small style="color: var(--text-secondary);">Endereço Logístico</small><p id="drawer-location" style="font-weight: 600;"></p></div>
+                    <div><small style="color: var(--text-secondary);">Faturamento Potencial</small><p id="drawer-turnover" style="font-weight: 600; color: var(--color-esg);"></p></div>
+                    <div><small style="color: var(--text-secondary);">Status da Matriz</small><p id="drawer-status-tag"></p></div>
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <div id="create-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="color: var(--color-primary);">📥 Lançamento de Insumo</h3>
-            <form id="product-form" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <div>
-                    <label for="name">Nome do Produto *</label>
-                    <input type="text" id="name" placeholder="Ex: Switch Cisco 24p" required>
-                </div>
-                <div>
-                    <label for="category">Categoria *</label>
-                    <input type="text" id="category" placeholder="Ex: Redes" required>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    <div>
-                        <label for="acquisitionCost">Custo Aquisição (R$)</label>
-                        <input type="number" id="acquisitionCost" step="0.01" required>
-                    </div>
-                    <div>
-                        <label for="sellingPrice">Preço Venda (R$)</label>
-                        <input type="number" id="sellingPrice" step="0.01" required>
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
-                    <div>
-                        <label for="quantityInStock">Qtd Inicial</label>
-                        <input type="number" id="quantityInStock" required>
-                    </div>
-                    <div>
-                        <label for="minimumStock">Est. Mínimo</label>
-                        <input type="number" id="minimumStock" required>
-                    </div>
-                    <div>
-                        <label for="maximumStock">Est. Máximo</label>
-                        <input type="number" id="maximumStock" required>
-                    </div>
-                </div>
+    <!-- 🟢 MODAL 1: CADASTRO DE NOVO PRODUTO -->
+    <div id="create-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999999; justify-content: center; align-items: center; padding: 1rem; overflow-y: auto;">
+        <div class="data-section" style="width: 100%; max-width: 600px; background: var(--bg-primary); border-radius: 8px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <h3>📦 Cadastrar Novo Insumo Logístico</h3>
+                <button onclick="closeCreateModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer;">&times;</button>
+            </div>
+            
+            <form id="product-form">
+                <div class="input-group"><label>Nome do Produto / Material *</label><input type="text" id="name" required></div>
+                <div class="input-group"><label>Categoria Mercadológica *</label><input type="text" id="category" placeholder="Ex: Bebidas, Mercearia" required></div>
                 
-                <fieldset>
-                    <legend>📍 Coordenadas de Endereçamento Físico (WMS)</legend>
-                    <div class="grid-inputs">
-                        <input type="text" id="sector" placeholder="Setor" required>
-                        <input type="text" id="row" placeholder="Rua" required>
-                        <input type="text" id="building" placeholder="Prédio" required>
-                        <input type="text" id="floor" placeholder="Andar" required>
-                    </div>
-                    <input type="text" id="apartment" placeholder="Vão / Posição" style="margin-top: 0.75rem;" required>
-                </fieldset>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="input-group"><label>Custo de Aquisição (R$) *</label><input type="number" id="acquisitionCost" step="0.01" required></div>
+                    <div class="input-group"><label>Preço de Venda (R$) *</label><input type="number" id="sellingPrice" step="0.01" required></div>
+                </div>
 
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0;">
-                    <input type="checkbox" id="isIndeterminateExpiration" checked>
-                    <label for="isIndeterminateExpiration" style="margin-bottom: 0; cursor: pointer;">Produto Sem Validade Estrita</label>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <div class="input-group"><label>Qtd Inicial *</label><input type="number" id="quantityInStock" required></div>
+                    <div class="input-group"><label>Estoque Mín *</label><input type="number" id="minimumStock" required></div>
+                    <div class="input-group"><label>Estoque Máx *</label><input type="number" id="maximumStock" required></div>
                 </div>
-                <div id="expiration-container" style="display: none;">
-                    <label for="expirationDate">Data de Vencimento *</label>
-                    <input type="date" id="expirationDate">
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;">
+                        <input type="checkbox" id="isIndeterminateExpiration"> Este material não possui data de validade (Inperecível)
+                    </label>
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancelar</button>
-                    <button type="submit" class="btn">Confirmar Entrada</button>
+
+                <div class="input-group" id="expiration-container"><label>Data de Vencimento *</label><input type="date" id="expirationDate" required></div>
+
+                <h4 style="margin: 1.5rem 0 0.5rem 0; border-top: 1px dashed var(--border-color); padding-top: 1rem;">📍 Coordenadas de Endereçamento WMS</h4>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
+                    <div class="input-group" style="margin:0;"><label>Setor</label><input type="text" id="sector" placeholder="A"></div>
+                    <div class="input-group" style="margin:0;"><label>Rua</label><input type="text" id="row" placeholder="02"></div>
+                    <div class="input-group" style="margin:0;"><label>Prédio</label><input type="text" id="building" placeholder="12"></div>
+                    <div class="input-group" style="margin:0;"><label>Nível</label><input type="text" id="floor" placeholder="03"></div>
+                    <div class="input-group" style="margin:0;"><label>Vão</label><input type="text" id="apartment" placeholder="B"></div>
                 </div>
+
+                <button type="submit" class="btn btn-primary">💾 Consolidar e Salvar no Banco</button>
             </form>
         </div>
     </div>
 
-    <div id="edit-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="color: var(--color-primary);">✏️ Atualizar Parâmetros Logísticos</h3>
-            <form id="edit-product-form" style="display: flex; flex-direction: column; gap: 0.75rem;">
+    <!-- 🟠 MODAL 2: EDIÇÃO DE PARÂMETROS LOGÍSTICOS -->
+    <div id="edit-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999999; justify-content: center; align-items: center; padding: 1rem;">
+        <div class="data-section" style="width: 100%; max-width: 550px; background: var(--bg-primary); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <h3>✏️ Atualizar Parâmetros de Insumo</h3>
+                <button onclick="document.getElementById('edit-modal').style.display='none'" style="background: none; border: none; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer;">&times;</button>
+            </div>
+            
+            <form id="edit-product-form">
                 <input type="hidden" id="edit-id">
-                <div>
-                    <label for="edit-name">Nome do Produto</label>
-                    <input type="text" id="edit-name" required>
+                <div class="input-group"><label>Nome do Produto</label><input type="text" id="edit-name" required></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="input-group"><label>Saldo Físico Atual</label><input type="number" id="edit-quantity" required></div>
+                    <div class="input-group"><label>Preço de Venda (R$)</label><input type="number" id="edit-price" step="0.01" required></div>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    <div>
-                        <label for="edit-quantity">Saldo Físico Atual</label>
-                        <input type="number" id="edit-quantity" required>
-                    </div>
-                    <div>
-                        <label for="edit-price">Preço de Venda (R$)</label>
-                        <input type="number" id="edit-price" step="0.01" required>
-                    </div>
-                </div>
-                
-                <fieldset>
-                    <legend>📍 Remanejo e Reendereçamento (WMS)</legend>
-                    <div class="grid-inputs">
-                        <input type="text" id="edit-sector" placeholder="Setor" required>
-                        <input type="text" id="edit-row" placeholder="Rua" required>
-                        <input type="text" id="edit-building" placeholder="Prédio" required>
-                        <input type="text" id="edit-floor" placeholder="Andar" required>
-                    </div>
-                    <input type="text" id="edit-apartment" placeholder="Vão / Posição" style="margin-top: 0.75rem;" required>
-                </fieldset>
 
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-modal').style.display='none'">Cancelar</button>
-                    <button type="submit" class="btn">Salvar Alterações</button>
+                <h4 style="margin: 1rem 0 0.5rem 0;">📍 Reendereçamento Logístico</h4>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
+                    <div class="input-group" style="margin:0;"><label>Setor</label><input type="text" id="edit-sector"></div>
+                    <div class="input-group" style="margin:0;"><label>Rua</label><input type="text" id="edit-row"></div>
+                    <div class="input-group" style="margin:0;"><label>Prédio</label><input type="text" id="edit-building"></div>
+                    <div class="input-group" style="margin:0;"><label>Nível</label><input type="text" id="edit-floor"></div>
+                    <div class="input-group" style="margin:0;"><label>Vão</label><input type="text" id="edit-apartment"></div>
                 </div>
+
+                <button type="submit" class="btn btn-primary">⚡ Atualizar Registro NoSQL</button>
             </form>
         </div>
     </div>
+
+    <script>
+        function handleUserLogout() {
+            if (confirm("Deseja realmente encerrar a sessão corporativa?")) {
+                localStorage.removeItem('sv_token');
+                localStorage.removeItem('sv_user');
+                window.location.href = "login.html";
+            }
+        }
+    </script>
 
     <script src="../assets/js/theme.js"></script>
     <script src="../assets/js/api.js"></script>

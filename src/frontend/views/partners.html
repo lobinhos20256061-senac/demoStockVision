@@ -1,119 +1,189 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StockVision - Recebimento por Nota Fiscal (NF-e)</title>
-    <link rel="stylesheet" href="../assets/css/global.css">
-    <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../assets/css/stock.css">
-</head>
-<body>
-
+    <link rel="stylesheet" href="../assets/css/global.css" />
+    <link rel="stylesheet" href="../assets/css/dashboard.css" />
+    <link rel="stylesheet" href="../assets/css/stock.css" />
+  </head>
+  <body>
     <div class="dashboard-container">
-        
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <h2>StockVision</h2>
-                <p>Veja o futuro. Controle o resultado.</p>
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <h2>StockVision</h2>
+          <p>Veja o futuro. Controle o resultado.</p>
+        </div>
+        <ul class="sidebar-menu">
+          <li><a href="dashboard.html">📊 Dashboard</a></li>
+          <li><a href="stock.html">📦 Estoque</a></li>
+          <li><a href="demand.html">🔮 Previsão de Demanda</a></li>
+          <li class="active">
+            <a href="partners.html">🤝 Pedidos & Fornecedores</a>
+          </li>
+          <li><a href="reverse.html">♻️ Logística Reversa</a></li>
+          <li><a href="esg.html">🌱 Sustentabilidade (ESG)</a></li>
+          <li class="nav-item">
+            <a
+              href="#"
+              onclick="handleUserLogout()"
+              style="color: #dc3545 !important; font-weight: bold"
+            >
+              ❌ Logout
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <main class="main-content">
+        <header class="top-bar">
+          <div class="user-info">
+            <h3>🤝 Recebimento Automatizado por XML de NF-e</h3>
+            <p id="company-name-display">
+              Carregando almoxarifado corporativo...
+            </p>
+          </div>
+          <button
+            id="theme-toggle"
+            class="theme-btn"
+            aria-label="Alternar tema"
+          >
+            🌓
+          </button>
+        </header>
+
+        <div
+          class="stock-workspace"
+          style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem"
+        >
+          <section class="data-section">
+            <h3>📥 Ingestão de Texto Bruto de NF-e</h3>
+            <p
+              style="
+                font-size: 0.85rem;
+                color: var(--text-secondary);
+                margin-bottom: 1rem;
+              "
+            >
+              Cole o conteúdo estruturado ou as tags do arquivo XML gerado pela
+              SEFAZ do seu fornecedor abaixo para rodar o desempacotamento de
+              itens automáticos.
+            </p>
+            <form
+              id="xml-invoice-form"
+              style="display: flex; flex-direction: column; gap: 1rem"
+            >
+              <textarea
+                id="xml-input"
+                rows="15"
+                placeholder="Cole as tags da nota fiscal aqui... Ex: <emit><xNome>Distribuidora SA</xNome></emit> <det><xProd>Arroz</xProd><qCom>100</qCom><vUnCom>5.50</vUnCom></det>"
+                required
+                style="
+                  width: 100%;
+                  padding: 0.75rem;
+                  border-radius: 6px;
+                  border: 2px solid var(--border-color);
+                  background: var(--bg-body);
+                  color: var(--text-primary);
+                  font-family: monospace;
+                  font-size: 0.85rem;
+                  outline: none;
+                  resize: vertical;
+                "
+              ></textarea>
+              <button
+                type="submit"
+                class="btn"
+                style="width: 100%; font-weight: bold; padding: 0.8rem"
+              >
+                ⚙️ Processar Nota e Estocar Itens
+              </button>
+            </form>
+          </section>
+
+          <section class="data-section">
+            <h3>📋 Relatório de Auditoria de Ingestão</h3>
+            <div
+              class="table-responsive"
+              style="margin-top: 1rem; max-height: 430px; overflow-y: auto"
+            >
+              <table>
+                <thead>
+                  <tr>
+                    <th>Material Identificado</th>
+                    <th>Ação Operacional NoSQL</th>
+                  </tr>
+                </thead>
+                <tbody id="xml-report-body">
+                  <tr>
+                    <td
+                      colspan="2"
+                      style="text-align: center; color: var(--text-secondary)"
+                    >
+                      Nenhuma nota fiscal na fila de processamento.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.html">📊 Dashboard</a></li>
-                <li><a href="stock.html">📦 Estoque</a></li>
-                <li><a href="demand.html">🔮 Previsão de Demanda</a></li>
-                <li class="active"><a href="partners.html">🤝 Pedidos & Fornecedores</a></li>
-                <li><a href="reverse.html">♻️ Logística Reversa</a></li>
-                <li><a href="esg.html">🌱 Sustentabilidade (ESG)</a></li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <header class="top-bar">
-                <div class="user-info">
-                    <h3>🤝 Recebimento Automatizado por XML de NF-e</h3>
-                    <p id="company-name-display">Carregando almoxarifado corporativo...</p>
-                </div>
-                <button id="theme-toggle" class="theme-btn" aria-label="Alternar tema">🌓</button>
-            </header>
-
-            <div class="stock-workspace" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                
-                <section class="data-section">
-                    <h3>📥 Ingestão de Texto Bruto de NF-e</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                        Cole o conteúdo estruturado ou as tags do arquivo XML gerado pela SEFAZ do seu fornecedor abaixo para rodar o desempacotamento de itens automáticos.
-                    </p>
-                    <form id="xml-invoice-form" style="display: flex; flex-direction: column; gap: 1rem;">
-                        <textarea id="xml-input" rows="15" placeholder="Cole as tags da nota fiscal aqui... Ex: <emit><xNome>Distribuidora SA</xNome></emit> <det><xProd>Arroz</xProd><qCom>100</qCom><vUnCom>5.50</vUnCom></det>" required style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid var(--border-color); background: var(--bg-body); color: var(--text-primary); font-family: monospace; font-size: 0.85rem; outline: none; resize: vertical;"></textarea>
-                        <button type="submit" class="btn" style="width: 100%; font-weight: bold; padding: 0.8rem;">⚙️ Processar Nota e Estocar Itens</button>
-                    </form>
-                </section>
-
-                <section class="data-section">
-                    <h3>📋 Relatório de Auditoria de Ingestão</h3>
-                    <div class="table-responsive" style="margin-top: 1rem; max-height: 430px; overflow-y: auto;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Material Identificado</th>
-                                    <th>Ação Operacional NoSQL</th>
-                                </tr>
-                            </thead>
-                            <tbody id="xml-report-body">
-                                <tr><td colspan="2" style="text-align: center; color: var(--text-secondary);">Nenhuma nota fiscal na fila de processamento.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-        </main>
+          </section>
+        </div>
+      </main>
     </div>
 
     <script src="../assets/js/theme.js"></script>
     <script src="../assets/js/api.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('xml-invoice-form');
-            const reportBody = document.getElementById('xml-report-body');
-            
-            const activeUser = TokenManager.getUser();
-            if (activeUser) {
-                document.getElementById('company-name-display').innerText = `Central de Recebimento: ${activeUser.company}`;
-            }
+      function handleUserLogout() {
+        if (confirm("Deseja realmente encerrar a sessão corporativa?")) {
+          localStorage.removeItem("sv_token");
+          localStorage.removeItem("sv_user");
+          window.location.href = "login.html";
+        }
+      }
+      document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("xml-invoice-form");
+        const reportBody = document.getElementById("xml-report-body");
 
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const xmlData = document.getElementById('xml-input').value;
-                const submitBtn = form.querySelector('.btn');
+        const activeUser = TokenManager.getUser();
+        if (activeUser) {
+          document.getElementById("company-name-display").innerText =
+            `Central de Recebimento: ${activeUser.company}`;
+        }
 
-                try {
-                    submitBtn.innerText = 'Lendo e Processando Lotes...';
-                    submitBtn.disabled = true;
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const xmlData = document.getElementById("xml-input").value;
+          const submitBtn = form.querySelector(".btn");
 
-                    const result = await StockAPI.importInvoiceXml(xmlData);
-                    alert(result.message || 'Nota Fiscal estocada!');
-                    
-                    // Renderiza o relatório reativo na tela para os alunos avaliarem o Bulk Operacional
-                    reportBody.innerHTML = '';
-                    result.summary.forEach(item => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
+          try {
+            submitBtn.innerText = "Lendo e Processando Lotes...";
+            submitBtn.disabled = true;
+
+            const result = await StockAPI.importInvoiceXml(xmlData);
+            alert(result.message || "Nota Fiscal estocada!");
+
+            // Renderiza o relatório reativo na tela para os alunos avaliarem o Bulk Operacional
+            reportBody.innerHTML = "";
+            result.summary.forEach((item) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
                             <td><strong>📦 ${item.name}</strong></td>
-                            <td><span class="status-badge ${item.action.includes('Incrementado') ? 'orange' : 'green'}">${item.action}</span></td>
+                            <td><span class="status-badge ${item.action.includes("Incrementado") ? "orange" : "green"}">${item.action}</span></td>
                         `;
-                        reportBody.appendChild(row);
-                    });
-
-                    form.reset();
-
-                } catch (error) {
-                    alert(`Falha no parse do XML: ${error.message}`);
-                } finally {
-                    submitBtn.innerText = '⚙️ Processar Nota e Estocar Itens';
-                    submitBtn.disabled = false;
-                }
+              reportBody.appendChild(row);
             });
+
+            form.reset();
+          } catch (error) {
+            alert(`Falha no parse do XML: ${error.message}`);
+          } finally {
+            submitBtn.innerText = "⚙️ Processar Nota e Estocar Itens";
+            submitBtn.disabled = false;
+          }
         });
+      });
     </script>
-</body>
+  </body>
 </html>

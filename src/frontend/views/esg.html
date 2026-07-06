@@ -1,127 +1,198 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StockVision - Auditoria e Inventário Rotativo</title>
-    <link rel="stylesheet" href="../assets/css/global.css">
-    <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../assets/css/stock.css">
-</head>
-<body>
-
+    <link rel="stylesheet" href="../assets/css/global.css" />
+    <link rel="stylesheet" href="../assets/css/dashboard.css" />
+    <link rel="stylesheet" href="../assets/css/stock.css" />
+  </head>
+  <body>
     <div class="dashboard-container">
-        
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <h2>StockVision</h2>
-                <p>Veja o futuro. Controle o resultado.</p>
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <h2>StockVision</h2>
+          <p>Veja o futuro. Controle o resultado.</p>
+        </div>
+        <ul class="sidebar-menu">
+          <li><a href="dashboard.html">📊 Dashboard</a></li>
+          <li><a href="stock.html">📦 Estoque</a></li>
+          <li><a href="demand.html">🔮 Previsão de Demanda</a></li>
+          <li><a href="partners.html">🤝 Pedidos & Fornecedores</a></li>
+          <li><a href="reverse.html">♻️ Logística Reversa</a></li>
+          <li class="active">
+            <a href="esg.html">🌱 Sustentabilidade (ESG)</a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              onclick="handleUserLogout()"
+              style="color: #dc3545 !important; font-weight: bold"
+            >
+              ❌ Logout
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <main class="main-content">
+        <header class="top-bar">
+          <div class="user-info">
+            <h3>⚖️ Central de Inventário Rotativo e Conciliação NoSQL</h3>
+            <p id="company-name-display">
+              Carregando governança de auditoria...
+            </p>
+          </div>
+          <button
+            id="theme-toggle"
+            class="theme-btn"
+            aria-label="Alternar tema"
+          >
+            🌓
+          </button>
+        </header>
+
+        <div class="filter-bar-container">
+          <div class="filter-controls" style="grid-template-columns: 2fr 1fr">
+            <input
+              type="text"
+              id="filter-sector"
+              placeholder="📍 Digite o Setor para contagem (Ex: RECEBIMENTO, A, B)..."
+            />
+            <button
+              class="btn"
+              onclick="triggerRotativeSearch()"
+              style="width: 100%; font-weight: bold"
+            >
+              📋 Gerar Folha Cega
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="stock-workspace"
+          style="display: grid; grid-template-columns: 4fr 3fr; gap: 2rem"
+        >
+          <section class="data-section" style="margin-top: 0">
+            <h3>📝 Folha de Contagem de Campo (Conferente)</h3>
+            <form id="audit-form" style="margin-top: 1rem">
+              <div
+                class="table-responsive"
+                style="max-height: 400px; overflow-y: auto"
+              >
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Material / SKU</th>
+                      <th>Endereço WMS</th>
+                      <th style="width: 140px">Qtd Física Contada</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rotative-sheet-body">
+                    <tr>
+                      <td
+                        colspan="3"
+                        style="text-align: center; color: var(--text-secondary)"
+                      >
+                        Gere a folha de contagem filtrada acima.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button
+                type="submit"
+                id="btn-submit-audit"
+                class="btn"
+                style="
+                  width: 100%;
+                  margin-top: 1rem;
+                  display: none;
+                  background: #0284c7;
+                  font-weight: bold;
+                "
+              >
+                ⚖️ Processar Auditoria e Conciliar Banco
+              </button>
+            </form>
+          </section>
+
+          <section class="data-section" style="margin-top: 0">
+            <h3>📊 Resultado da Apuração de Divergências</h3>
+            <div
+              class="table-responsive"
+              style="margin-top: 1rem; max-height: 450px; overflow-y: auto"
+            >
+              <table>
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Desvio (Físico vs Sist)</th>
+                    <th>Impacto Financeiro</th>
+                    <th>Resultado</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-report-body">
+                  <tr>
+                    <td
+                      colspan="4"
+                      style="text-align: center; color: var(--text-secondary)"
+                    >
+                      Aguardando submissão física...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.html">📊 Dashboard</a></li>
-                <li><a href="stock.html">📦 Estoque</a></li>
-                <li><a href="demand.html">🔮 Previsão de Demanda</a></li>
-                <li><a href="partners.html">🤝 Pedidos & Fornecedores</a></li>
-                <li><a href="reverse.html">♻️ Logística Reversa</a></li>
-                <li class="active"><a href="esg.html">🌱 Sustentabilidade (ESG)</a></li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <header class="top-bar">
-                <div class="user-info">
-                    <h3>⚖️ Central de Inventário Rotativo e Conciliação NoSQL</h3>
-                    <p id="company-name-display">Carregando governança de auditoria...</p>
-                </div>
-                <button id="theme-toggle" class="theme-btn" aria-label="Alternar tema">🌓</button>
-            </header>
-
-            <div class="filter-bar-container">
-                <div class="filter-controls" style="grid-template-columns: 2fr 1fr;">
-                    <input type="text" id="filter-sector" placeholder="📍 Digite o Setor para contagem (Ex: RECEBIMENTO, A, B)...">
-                    <button class="btn" onclick="triggerRotativeSearch()" style="width:100%; font-weight:bold;">📋 Gerar Folha Cega</button>
-                </div>
-            </div>
-
-            <div class="stock-workspace" style="display: grid; grid-template-columns: 4fr 3fr; gap: 2rem;">
-                
-                <section class="data-section" style="margin-top:0;">
-                    <h3>📝 Folha de Contagem de Campo (Conferente)</h3>
-                    <form id="audit-form" style="margin-top: 1rem;">
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Material / SKU</th>
-                                        <th>Endereço WMS</th>
-                                        <th style="width: 140px;">Qtd Física Contada</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="rotative-sheet-body">
-                                    <tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">Gere a folha de contagem filtrada acima.</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <button type="submit" id="btn-submit-audit" class="btn" style="width:100%; margin-top:1rem; display:none; background:#0284c7; font-weight:bold;">⚖️ Processar Auditoria e Conciliar Banco</button>
-                    </form>
-                </section>
-
-                <section class="data-section" style="margin-top:0;">
-                    <h3>📊 Resultado da Apuração de Divergências</h3>
-                    <div class="table-responsive" style="margin-top: 1rem; max-height: 450px; overflow-y: auto;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th>Desvio (Físico vs Sist)</th>
-                                    <th>Impacto Financeiro</th>
-                                    <th>Resultado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="audit-report-body">
-                                <tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">Aguardando submissão física...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-            </div>
-        </main>
+          </section>
+        </div>
+      </main>
     </div>
 
     <script src="../assets/js/theme.js"></script>
     <script src="../assets/js/api.js"></script>
     <script>
-        let currentSheetItems = [];
+      function handleUserLogout() {
+        if (confirm("Deseja realmente encerrar a sessão corporativa?")) {
+          localStorage.removeItem("sv_token");
+          localStorage.removeItem("sv_user");
+          window.location.href = "login.html";
+        }
+      }
+      let currentSheetItems = [];
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const activeUser = TokenManager.getUser();
-            if (activeUser) {
-                document.getElementById('company-name-display').innerText = `Auditoria Interna: ${activeUser.company}`;
-            }
-        });
+      document.addEventListener("DOMContentLoaded", () => {
+        const activeUser = TokenManager.getUser();
+        if (activeUser) {
+          document.getElementById("company-name-display").innerText =
+            `Auditoria Interna: ${activeUser.company}`;
+        }
+      });
 
-        // Dispara a busca e monta a folha cega de contagem
-        const triggerRotativeSearch = async () => {
-            const sectorVal = document.getElementById('filter-sector').value.trim();
-            const sheetBody = document.getElementById('rotative-sheet-body');
-            const submitBtn = document.getElementById('btn-submit-audit');
+      // Dispara a busca e monta a folha cega de contagem
+      const triggerRotativeSearch = async () => {
+        const sectorVal = document.getElementById("filter-sector").value.trim();
+        const sheetBody = document.getElementById("rotative-sheet-body");
+        const submitBtn = document.getElementById("btn-submit-audit");
 
-            try {
-                sheetBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">Mapeando endereços...</td></tr>';
-                const data = await StockAPI.getRotativeSheet('', sectorVal);
-                currentSheetItems = data;
+        try {
+          sheetBody.innerHTML =
+            '<tr><td colspan="3" style="text-align: center;">Mapeando endereços...</td></tr>';
+          const data = await StockAPI.getRotativeSheet("", sectorVal);
+          currentSheetItems = data;
 
-                sheetBody.innerHTML = '';
-                if (data.length === 0) {
-                    sheetBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">Nenhum item localizado no setor informado.</td></tr>';
-                    submitBtn.style.display = 'none';
-                    return;
-                }
+          sheetBody.innerHTML = "";
+          if (data.length === 0) {
+            sheetBody.innerHTML =
+              '<tr><td colspan="3" style="text-align: center;">Nenhum item localizado no setor informado.</td></tr>';
+            submitBtn.style.display = "none";
+            return;
+          }
 
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
+          data.forEach((item) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
                         <td><strong>📦 ${item.name}</strong><br><small style="color:var(--text-secondary)">SKU: ${item.sku}</small></td>
                         <td style="font-family:monospace; font-size:0.85rem;">${item.location}</td>
                         <td>
@@ -129,63 +200,69 @@
                                    style="width:100%; padding:0.4rem; border-radius:4px; border:2px solid #cbd5e1; background:#ececec; color:#1e293b; font-weight:bold; text-align:center;">
                         </td>
                     `;
-                    sheetBody.appendChild(row);
-                });
+            sheetBody.appendChild(row);
+          });
 
-                submitBtn.style.display = 'block';
+          submitBtn.style.display = "block";
+        } catch (e) {
+          sheetBody.innerHTML =
+            '<tr><td colspan="3" style="text-align: center; color:var(--color-error)">Erro ao ler dados de conferência.</td></tr>';
+        }
+      };
 
-            } catch (e) {
-                sheetBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color:var(--color-error)">Erro ao ler dados de conferência.</td></tr>';
-            }
-        };
+      // Envio do formulário de auditoria (Confronto e Balanço)
+      document
+        .getElementById("audit-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const inputs = document.querySelectorAll(".physical-input");
+          const countedItems = [];
 
-        // Envio do formulário de auditoria (Confronto e Balanço)
-        document.getElementById('audit-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const inputs = document.querySelectorAll('.physical-input');
-            const countedItems = [];
-
-            inputs.forEach(input => {
-                countedItems.push({
-                    productId: input.getAttribute('data-id'),
-                    physicalQty: input.value
-                });
+          inputs.forEach((input) => {
+            countedItems.push({
+              productId: input.getAttribute("data-id"),
+              physicalQty: input.value,
             });
+          });
 
-            try {
-                const result = await StockAPI.submitInventoryAudit(countedItems);
-                alert(result.message || 'Auditoria processada!');
+          try {
+            const result = await StockAPI.submitInventoryAudit(countedItems);
+            alert(result.message || "Auditoria processada!");
 
-                const reportBody = document.getElementById('audit-report-body');
-                reportBody.innerHTML = '';
+            const reportBody = document.getElementById("audit-report-body");
+            reportBody.innerHTML = "";
 
-                result.report.forEach(item => {
-                    const row = document.createElement('tr');
-                    const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-                    
-                    let badgeColor = "green";
-                    if (item.divergenceQty < 0) badgeColor = "red";
-                    if (item.divergenceQty > 0) badgeColor = "orange";
+            result.report.forEach((item) => {
+              const row = document.createElement("tr");
+              const formatCurrency = (v) =>
+                new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(v);
 
-                    row.innerHTML = `
+              let badgeColor = "green";
+              if (item.divergenceQty < 0) badgeColor = "red";
+              if (item.divergenceQty > 0) badgeColor = "orange";
+
+              row.innerHTML = `
                         <td><strong>${item.name}</strong></td>
                         <td style="font-weight:bold; text-align:center;">${item.divergenceQty > 0 ? `+${item.divergenceQty}` : item.divergenceQty} un</td>
-                        <td style="font-family:monospace; font-weight:bold; color:${item.financialImpact < 0 ? '#dc3545' : 'var(--color-esg)'}">
+                        <td style="font-family:monospace; font-weight:bold; color:${item.financialImpact < 0 ? "#dc3545" : "var(--color-esg)"}">
                             ${formatCurrency(item.financialImpact)}
                         </td>
                         <td><span class="status-badge ${badgeColor}">${item.status}</span></td>
                     `;
-                    reportBody.appendChild(row);
-                });
+              reportBody.appendChild(row);
+            });
 
-                // Oculta o botão de envio e limpa a folha para nova rodada
-                document.getElementById('btn-submit-audit').style.display = 'none';
-                document.getElementById('rotative-sheet-body').innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">Inventário processado com sucesso. Defina outro setor acima.</td></tr>';
-
-            } catch (error) {
-                alert(`Erro ao conciliar dados: ${error.message}`);
-            }
+            // Oculta o botão de envio e limpa a folha para nova rodada
+            document.getElementById("btn-submit-audit").style.display = "none";
+            document.getElementById("rotative-sheet-body").innerHTML =
+              '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">Inventário processado com sucesso. Defina outro setor acima.</td></tr>';
+          } catch (error) {
+            alert(`Erro ao conciliar dados: ${error.message}`);
+          }
         });
     </script>
-</body>
+  </body>
 </html>

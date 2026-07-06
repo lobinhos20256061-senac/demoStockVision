@@ -1,89 +1,116 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StockVision - Painel Principal</title>
-    <link rel="stylesheet" href="../assets/css/global.css">
-    <link rel="stylesheet" href="../assets/css/dashboard.css">
-</head>
-<body>
-
+    <link rel="stylesheet" href="../assets/css/global.css" />
+    <link rel="stylesheet" href="../assets/css/dashboard.css" />
+  </head>
+  <body>
     <div class="dashboard-container">
-        
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <h2>StockVision</h2>
-                <p>Veja o futuro. Controle o resultado.</p>
-            </div>
-            <ul class="sidebar-menu">
-                <li class="active"><a href="dashboard.html">📊 Dashboard</a></li>
-                <li><a href="stock.html">📦 Estoque</a></li>
-                <li><a href="demand.html">🔮 Previsão de Demanda</a></li>
-                <li><a href="partners.html">🤝 Pedidos & Fornecedores</a></li>
-                <li><a href="reverse.html">♻️ Logística Reversa</a></li>
-                <li><a href="esg.html">🌱 Sustentabilidade (ESG)</a></li>
-            </ul>
-        </aside>
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <h2>StockVision</h2>
+          <p>Veja o futuro. Controle o resultado.</p>
+        </div>
+        <ul class="sidebar-menu">
+          <li class="active"><a href="dashboard.html">📊 Dashboard</a></li>
+          <li><a href="stock.html">📦 Estoque</a></li>
+          <li><a href="demand.html">🔮 Previsão de Demanda</a></li>
+          <li><a href="partners.html">🤝 Pedidos & Fornecedores</a></li>
+          <li><a href="reverse.html">♻️ Logística Reversa</a></li>
+          <li><a href="esg.html">🌱 Sustentabilidade (ESG)</a></li>
+          <li class="nav-item">
+            <a
+              href="#"
+              onclick="handleUserLogout()"
+              style="color: #dc3545 !important; font-weight: bold"
+            >
+              ❌ Logout
+            </a>
+          </li>
+        </ul>
+      </aside>
 
-        <main class="main-content">
-            
-            <header class="top-bar">
-                <div class="user-info">
-                    <h3>Carregando perfil...</h3>
-                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Identificando organização...</p>
-                </div>
-                <button id="theme-toggle" class="theme-btn" aria-label="Alternar tema">🌓</button>
-            </header>
+      <main class="main-content">
+        <header class="top-bar">
+          <div class="user-info">
+            <h3>Carregando perfil...</h3>
+            <p style="font-size: 0.875rem; color: var(--text-secondary)">
+              Identificando organização...
+            </p>
+          </div>
+          <button
+            id="theme-toggle"
+            class="theme-btn"
+            aria-label="Alternar tema"
+          >
+            🌓
+          </button>
+        </header>
 
-            <section class="metrics-grid">
-                <div class="card">
-                    <div class="card-title">Receita Geral (Estoque)</div>
-                    <div class="card-value">...</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Custos de Aquisição</div>
-                    <div class="card-value">...</div>
-                </div>
-                <div class="card esg">
-                    <div class="card-title">Lucro Geral Estimado</div>
-                    <div class="card-value" style="color: var(--color-esg);">...</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Nível de Estoque Total</div>
-                    <div class="card-value">...</div>
-                </div>
-            </section>
+        <section class="metrics-grid">
+          <div class="card">
+            <div class="card-title">Receita Geral (Estoque)</div>
+            <div class="card-value">...</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Custos de Aquisição</div>
+            <div class="card-value">...</div>
+          </div>
+          <div class="card esg">
+            <div class="card-title">Lucro Geral Estimado</div>
+            <div class="card-value" style="color: var(--color-esg)">...</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Nível de Estoque Total</div>
+            <div class="card-value">...</div>
+          </div>
+        </section>
 
-            <section class="data-section">
-                <h3>⚠️ Alertas Operacionais Críticos</h3>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Produto</th>
-                                <th>SKU / Referência</th>
-                                <th>Qtd Atual</th>
-                                <th>Tipo de Alerta</th>
-                                <th>Status Visual</th>
-                            </tr>
-                        </thead>
-                        <tbody id="alerts-table-body">
-                            <tr>
-                                <td colspan="5" style="text-align: center; color: var(--text-secondary);">
-                                    Sincronizando com os motores de cálculo logísticos...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-        </main>
+        <section class="data-section">
+          <h3>⚠️ Alertas Operacionais Críticos</h3>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>SKU / Referência</th>
+                  <th>Qtd Atual</th>
+                  <th>Tipo de Alerta</th>
+                  <th>Status Visual</th>
+                </tr>
+              </thead>
+              <tbody id="alerts-table-body">
+                <tr>
+                  <td
+                    colspan="5"
+                    style="text-align: center; color: var(--text-secondary)"
+                  >
+                    Sincronizando com os motores de cálculo logísticos...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
     </div>
+
+        <!-- FUNÇÃO DE LOGOUT ISOLADA -->
+    <script>
+        function handleUserLogout() {
+            if (confirm("Deseja realmente encerrar a sessão corporativa?")) {
+                localStorage.removeItem('sv_token');
+                localStorage.removeItem('sv_user');
+                window.location.href = "login.html";
+            }
+        }
+    </script>
 
     <script src="../assets/js/theme.js"></script>
     <script src="../assets/js/api.js"></script>
     <script src="../assets/js/main.js"></script>
-</body>
+  </body>
 </html>
