@@ -1,4 +1,4 @@
-# 🚀 Guia de Instalação e Configuração - StockVision
+# 🚀 Guia de Instalação e Configuração - StockVision 2.0
 
 ## 📋 Pré-requisitos
 
@@ -6,7 +6,7 @@
 
 Você vai precisar de:
 
-- **Node.js** (v14.0.0 ou superior)
+- **Node.js** (v18.0.0 ou superior)
   - [Download Node.js](https://nodejs.org/)
   - Inclui npm automaticamente
   

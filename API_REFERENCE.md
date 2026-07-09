@@ -1,4 +1,6 @@
-# 📖 Referência Completa da API - StockVision
+# 📖 Referência Completa da API - StockVision 2.0
+
+> Versão atual da aplicação: 2.0.0
 
 ## 🔑 Índice de Endpoints
 

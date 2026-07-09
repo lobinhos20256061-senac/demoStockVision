@@ -3,22 +3,32 @@
 * Executa imediatamente para bloquear acessos não autorizados e limpar cache de histórico.
 */
 (() => {
+    const publicPages = ['login.html', 'register.html', 'index.html'];
+    const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+    const hasSession = Boolean(localStorage.getItem('sv_token') && localStorage.getItem('sv_user'));
+    const baseFolder = window.location.pathname.includes('/views/') ? '' : 'views/';
+
+    const redirectTo = (target) => {
+        const finalTarget = target.startsWith('http') ? target : `${baseFolder}${target}`;
+        window.location.replace(finalTarget);
+    };
+
     const checkAuth = () => {
-        const token = localStorage.getItem('sv_token');
-        const activeUser = localStorage.getItem('sv_user');
- 
-        // Se não houver token ou usuário no armazenamento local, barra o acesso imediatamente
-        if (!token || !activeUser) {
-            window.location.replace('login.html'); // O 'replace' substitui a página atual no histórico para evitar loops do botão voltar
+        if (publicPages.includes(currentPath)) {
+            if (hasSession && currentPath !== 'index.html') {
+                redirectTo('dashboard.html');
+            }
+            return;
+        }
+
+        if (!hasSession) {
+            redirectTo('login.html');
         }
     };
- 
-    // 1. Executa imediatamente no carregamento inicial do script
+
     checkAuth();
- 
-    // 2. Executa toda vez que a página é exibida (Resolve o bug do botão 'Voltar' do navegador)
+
     window.addEventListener('pageshow', (event) => {
-        // Se a página veio do cache do histórico do navegador, força a revalidação do login
         if (event.persisted) {
             checkAuth();
         }

@@ -34,7 +34,7 @@ web: node src/backend/server.js
 ```json
 {
   "name": "stockvision-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "engines": {
     "node": "18.x",
     "npm": "9.x"
@@ -323,10 +323,10 @@ docker run -p 3000:3000 \
 docker login
 
 # Tag image
-docker tag stockvision:latest seu-usuario/stockvision:1.0.0
+docker tag stockvision:latest seu-usuario/stockvision:2.0.0
 
 # Push
-docker push seu-usuario/stockvision:1.0.0
+docker push seu-usuario/stockvision:2.0.0
 ```
 
 #### Google Container Registry

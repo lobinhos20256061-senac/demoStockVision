@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 
 const LocationSchema = new mongoose.Schema({
     sector: { type: String, trim: true, default: 'Não Alocado' },
-    row: { type: String, trim: true, required: [true, 'A rua/corredor do galpão é obrigatória.'] },
-    building: { type: String, trim: true },
-    floor: { type: String, trim: true },
-    apartment: { type: String, trim: true }
+    row: { type: String, trim: true, default: 'Não Alocado' },
+    building: { type: String, trim: true, default: 'Não Alocado' },
+    floor: { type: String, trim: true, default: 'Não Alocado' },
+    apartment: { type: String, trim: true, default: 'Não Alocado' }
 }, { _id: false });
 
 const ProductSchema = new mongoose.Schema({
@@ -21,7 +21,7 @@ const ProductSchema = new mongoose.Schema({
     quantityInStock: { type: Number, required: [true, 'A quantidade é obrigatória.'], min: 0, default: 0 },
     minimumStock: { type: Number, required: [true, 'O estoque mínimo é obrigatório.'], min: 0 },
     maximumStock: { type: Number, required: [true, 'O estoque máximo é obrigatório.'], min: 0 },
-    location: { type: LocationSchema, required: [true, 'O endereçamento WMS é obrigatório.'] },
+    location: { type: LocationSchema, default: () => ({}) },
     
     /* --- 🔮 NOVOS CAMPOS PARA O MOTOR DE INTELIGÊNCIA ARTIFICIAL --- */
     leadTimeDays: { 

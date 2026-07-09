@@ -1,10 +1,15 @@
 /**
  * STOCKVISION - CONTROLADOR DE EVENTOS E INTERAÇÃO DA INTERFACE (DOM)
- * Centraliza e orquestra todas as manipulações de tela e sincronizações NoSQL.
+ * Adaptado para Bootstrap 5 e Chart.js
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     
+    // Variáveis globais para instâncias dos gráficos Chart.js
+    let financialChartInstance = null;
+    let stockChartInstance = null;
+    let currentTimelineData = null;
+
     // =========================================================================
     // 1. FLUXO DE AUTENTICAÇÃO (LOGIN E CADASTRO)
     // =========================================================================
@@ -14,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            const submitBtn = loginForm.querySelector('.btn');
+            const submitBtn = loginForm.querySelector('.btn') || loginForm.querySelector('button[type="submit"]');
 
             try {
                 if (submitBtn) { submitBtn.innerText = 'Autenticando...'; submitBtn.disabled = true; }
@@ -37,17 +42,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const company = document.getElementById('company').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
-            const submitBtn = registerForm.querySelector('.btn');
+            const submitBtn = registerForm.querySelector('.btn') || registerForm.querySelector('button[type="submit"]');
 
             if (password !== confirmPassword) {
-                alert('Atenção: A confirmação de senha não coincide com a senha digitada!');
+                alert('Atenção: A confirmação de senha não coincide!');
                 return;
             }
 
             try {
                 if (submitBtn) { submitBtn.innerText = 'Processando Cadastro...'; submitBtn.disabled = true; }
                 const response = await AuthAPI.registerCompany(fullname, email, company, password);
-                alert(response.message || 'Empresa e Administrador cadastrados com sucesso!');
+                alert(response.message || 'Empresa cadastrada com sucesso!');
                 window.location.href = 'dashboard.html';
             } catch (error) {
                 alert(`Erro ao cadastrar: ${error.message}`);
@@ -57,353 +62,329 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // 2. FLUXO DO PAINEL PRINCIPAL (DASHBOARD - REAL TIME DATA)
+    // 2. FUNÇÃO CORE DE GRÁFICOS (CHART.JS + BOOTSTRAP THEME)
     // =========================================================================
-    const metricsGrid = document.querySelector('.metrics-grid');
+    const buildCharts = (historyTimeline) => {
+        if (typeof Chart === 'undefined') {
+            console.error("Chart.js não encontrado. Verifique se o script foi importado no HTML.");
+            return;
+        }
+
+        // Lê dinamicamente as cores do tema (Light/Dark mode)
+        const computedTextColor = getComputedStyle(document.documentElement).getPropertyValue('--bs-body-color').trim() || '#212529';
+        const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--bs-border-color').trim() || 'rgba(0,0,0,0.1)';
+
+        // Limpa gráficos anteriores para evitar sobreposição
+        if (financialChartInstance) financialChartInstance.destroy();
+        if (stockChartInstance) stockChartInstance.destroy();
+
+        Chart.defaults.color = computedTextColor;
+        Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+
+        // 📊 GRÁFICO DE LINHAS (RECEITAS E CUSTOS)
+        const ctxFinancial = document.getElementById('financialChart');
+        if (ctxFinancial && historyTimeline) {
+            financialChartInstance = new Chart(ctxFinancial, {
+                type: 'line',
+                data: {
+                    labels: historyTimeline.months,
+                    datasets: [
+                        { label: 'Receitas (R$)', data: historyTimeline.revenue, borderColor: '#0d6efd', backgroundColor: 'rgba(13, 110, 253, 0.1)', tension: 0.3, borderWidth: 3, fill: true },
+                        { label: 'Custos (R$)', data: historyTimeline.costs, borderColor: '#dc3545', backgroundColor: 'rgba(220, 53, 69, 0.05)', tension: 0.3, borderWidth: 2, fill: true }
+                    ]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { labels: { color: computedTextColor } } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: computedTextColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: computedTextColor } }
+                    }
+                }
+            });
+        }
+
+        // 📊 GRÁFICO DE BARRAS (VOLUME DE ESTOQUE)
+        const ctxStock = document.getElementById('stockChart');
+        if (ctxStock && historyTimeline) {
+            stockChartInstance = new Chart(ctxStock, {
+                type: 'bar',
+                data: { 
+                    labels: historyTimeline.months, 
+                    datasets: [{ label: 'Volume Físico', data: historyTimeline.stockLevels, backgroundColor: '#0dcaf0', borderRadius: 4 }] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { labels: { color: computedTextColor } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: computedTextColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: computedTextColor } }
+                    }
+                }
+            });
+        }
+    };
+
+    // Helper para converter o nome das cores em classes Badge do Bootstrap 5
+    const getBootstrapBadge = (colorName) => {
+        if (colorName === 'red') return 'bg-danger';
+        if (colorName === 'orange') return 'bg-warning text-dark';
+        if (colorName === 'green') return 'bg-success';
+        if (colorName === 'blue') return 'bg-primary';
+        return 'bg-secondary';
+    };
+
+    // =========================================================================
+    // 3. FLUXO DO DASHBOARD (MÉTRICAS, GRÁFICOS E ALERTAS)
+    // =========================================================================
     const alertsTableBody = document.getElementById('alerts-table-body');
-
-    const buildCategoryChart = (inventoryProducts) => {
-        const chartEl = document.getElementById('category-chart');
-        if (!chartEl) return;
-
-        const grouped = inventoryProducts.reduce((acc, product) => {
-            const category = product.category || 'Sem categoria';
-            if (!acc[category]) acc[category] = { category, total: 0 };
-            acc[category].total += Number(product.quantityInStock || 0);
-            return acc;
-        }, {});
-
-        const entries = Object.values(grouped).sort((a, b) => b.total - a.total).slice(0, 6);
-
-        if (entries.length === 0) {
-            chartEl.innerHTML = '<div class="empty-state">Nenhum volume de estoque registrado no momento.</div>';
-            return;
-        }
-
-        const maxValue = Math.max(...entries.map(item => item.total), 1);
-        chartEl.innerHTML = entries.map(item => `
-            <div class="bar-group">
-                <div class="bar-meta">
-                    <span class="bar-label">${item.category}</span>
-                    <span class="bar-value">${item.total.toLocaleString('pt-BR')} un</span>
-                </div>
-                <div class="bar-track">
-                    <div class="bar" style="width:${Math.max(8, (item.total / maxValue) * 100)}%"></div>
-                </div>
-            </div>
-        `).join('');
-    };
-
-    const buildStatusChart = (inventoryProducts) => {
-        const chartEl = document.getElementById('status-chart');
-        const totalEl = document.getElementById('status-chart-total');
-        const legendEl = document.getElementById('status-legend');
-        if (!chartEl || !totalEl || !legendEl) return;
-
-        const grouped = inventoryProducts.reduce((acc, product) => {
-            const status = product.statusVisual?.statusTag || 'Normal';
-            if (!acc[status]) acc[status] = { label: status, count: 0 };
-            acc[status].count += 1;
-            return acc;
-        }, {});
-
-        const entries = Object.values(grouped).sort((a, b) => b.count - a.count);
-        const total = entries.reduce((sum, item) => sum + item.count, 0);
-        totalEl.textContent = total.toLocaleString('pt-BR');
-
-        if (entries.length === 0) {
-            chartEl.style.background = 'conic-gradient(var(--color-main-blue) 0 100%)';
-            legendEl.innerHTML = '<div class="legend-item"><span><span class="legend-swatch" style="background: var(--color-main-blue)"></span>Nenhum dado</span><strong>0%</strong></div>';
-            return;
-        }
-
-        const colors = {
-            'Ruptura': 'var(--color-rupture)',
-            'Estoque Baixo': 'var(--color-rupture)',
-            'Excesso': 'var(--color-excess)',
-            'Normal': 'var(--color-esg)'
-        };
-
-        let start = 0;
-        const segments = entries.map(item => {
-            const color = colors[item.label] || 'var(--color-main-blue)';
-            const percentage = (item.count / total) * 100;
-            const end = start + percentage;
-            const segment = `${color} ${start}% ${end}%`;
-            start = end;
-            return segment;
-        }).join(', ');
-
-        chartEl.style.background = `conic-gradient(${segments})`;
-        legendEl.innerHTML = entries.map(item => {
-            const color = colors[item.label] || 'var(--color-main-blue)';
-            const percentage = total ? Math.round((item.count / total) * 100) : 0;
-            return `
-                <div class="legend-item">
-                    <span><span class="legend-swatch" style="background:${color}"></span>${item.label}</span>
-                    <strong>${percentage}%</strong>
-                </div>
-            `;
-        }).join('');
-    };
+    const financialChartEl = document.getElementById('financialChart');
     
-    if (metricsGrid && alertsTableBody) {
+    if (alertsTableBody || financialChartEl) {
         const renderDashboardData = async () => {
             try {
                 const activeUser = TokenManager.getUser();
-                const token = TokenManager.getToken();
-
-                if (!activeUser || !token) {
+                if (!activeUser) {
                     window.location.href = 'login.html';
                     return;
                 }
 
-                const userTitleEl = document.querySelector('.user-info h3');
-                const companySubEl = document.querySelector('.user-info p');
-                if (userTitleEl) userTitleEl.innerText = `Olá, ${activeUser.fullname}`;
+                // Preencher Perfil
+                const userTitleEl = document.getElementById('user-name-display') || document.querySelector('.user-info h4') || document.querySelector('.user-info h3') || document.querySelector('h3');
+                const companySubEl = document.getElementById('user-company-display') || document.querySelector('.user-info p') || document.querySelector('.topbar p');
+                if (userTitleEl) userTitleEl.innerText = `Olá, ${activeUser.fullname.toUpperCase()}`;
                 if (companySubEl) companySubEl.innerText = activeUser.company;
 
-                // Isolamento preventivo de chamadas para evitar que quebras de Schema travem a UI
-                let metrics = { financials: { totalRevenue: 0, totalCosts: 0, estimatedProfit: 0 }, indicators: { stockLevel: 0 } };
+                let metrics = { financials: { totalRevenue: 0, totalCosts: 0, estimatedProfit: 0 }, indicators: { stockLevel: 0 }, historyTimeline: null };
                 let inventoryProducts = [];
-                let expirationAlerts = [];
 
                 try { metrics = await StockAPI.getDashboardMetrics(); } catch (e) { console.error("Erro nas métricas:", e); }
                 try { inventoryProducts = await StockAPI.getInventory(); } catch (e) { console.error("Erro no inventário:", e); }
-                try { expirationAlerts = await StockAPI.getExpirationAlerts(); } catch (e) { console.error("Erro nos alertas ESG:", e); }
                 
-                // --- RENDERIZAR CARTÕES DE LOGÍSTICA ---
-                const { financials, indicators } = metrics;
-                const cards = metricsGrid.querySelectorAll('.card');
+                const { financials, indicators, historyTimeline } = metrics;
+                currentTimelineData = historyTimeline;
 
+                // Preencher Cards (Métricas Superiores)
+                const cards = document.querySelectorAll('.card');
                 if (cards.length >= 4) {
                     const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-                    cards[0].querySelector('.card-value').textContent = formatCurrency(financials.totalRevenue || 0);
-                    cards[1].querySelector('.card-value').textContent = formatCurrency(financials.totalCosts || 0);
-                    cards[2].querySelector('.card-value').textContent = formatCurrency(financials.estimatedProfit || 0);
-                    cards[3].querySelector('.card-value').textContent = `${(indicators.stockLevel || 0).toLocaleString('pt-BR')} un`;
-                }
+                    
+                    const revEl = cards[0].querySelector('.card-title') || cards[0].querySelector('.card-value') || cards[0].querySelector('h3');
+                    const costEl = cards[1].querySelector('.card-title') || cards[1].querySelector('.card-value') || cards[1].querySelector('h3');
+                    const profEl = cards[2].querySelector('.card-title') || cards[2].querySelector('.card-value') || cards[2].querySelector('h3');
+                    const stockEl = cards[3].querySelector('.card-title') || cards[3].querySelector('.card-value') || cards[3].querySelector('h3');
 
-                buildCategoryChart(inventoryProducts);
-                buildStatusChart(inventoryProducts);
-
-                // --- RENDERIZAR TABELA DE ALERTAS OPERACIONAIS CRÍTICOS (CORRIGIDO) ---
-                alertsTableBody.innerHTML = '';
-                let totalAlertRows = 0;
-
-                if (Array.isArray(inventoryProducts)) {
-                    inventoryProducts.forEach(prod => {
-                        const statusVis = prod.statusVisual || { alertColor: 'blue', statusTag: 'Normal' };
-                        const { alertColor, statusTag } = statusVis;
-                        
-                        // Captura qualquer desvio dos limites operacionais seguros de estoque
-                        if (alertColor === 'red' || alertColor === 'orange' || statusTag === 'Estoque Baixo' || statusTag === 'Ruptura') {
-                            totalAlertRows++;
-                            const row = document.createElement('tr');
-                            
-                            // Define dinamicamente o texto de descrição com base na tag estrita calculada pelo back-end
-                            let alertDescription = 'Ajuste Operacional Solicitado';
-                            if (statusTag === 'Ruptura') alertDescription = '🚨 Ruptura Total de Estoque (Saldo Zero)';
-                            if (statusTag === 'Estoque Baixo') alertDescription = '⚠️ Abaixo do Estoque Mínimo de Segurança';
-                            if (statusTag === 'Excesso') alertDescription = '💸 Capital Imobilizado (Acima do Máximo)';
-
-                            row.innerHTML = `
-                                <td><strong>${prod.name}</strong></td>
-                                <td>${prod.sku || 'N/A'}</td>
-                                <td>${(prod.quantityInStock || 0).toLocaleString('pt-BR')} un</td>
-                                <td style="font-weight: 500;">${alertDescription}</td>
-                                <td><span class="status-badge ${alertColor}">${statusTag}</span></td>
-                            `;
-                            alertsTableBody.appendChild(row);
+                    if (revEl) revEl.textContent = formatCurrency(financials.totalRevenue || 0);
+                    if (costEl) costEl.textContent = formatCurrency(financials.totalCosts || 0);
+                    if (stockEl) stockEl.textContent = `${(indicators.stockLevel || 0).toLocaleString('pt-BR')} un`;
+                    
+                    if (profEl) {
+                        profEl.textContent = formatCurrency(financials.estimatedProfit || 0);
+                        if (financials.estimatedProfit < 0) {
+                            profEl.classList.remove('text-success');
+                            profEl.classList.add('text-danger');
+                            cards[2].classList.replace('border-success', 'border-danger');
+                            cards[2].classList.replace('bg-success-subtle', 'bg-danger-subtle');
                         }
-                    });
+                    }
                 }
 
-                if (Array.isArray(expirationAlerts)) {
-                    expirationAlerts.forEach(alertItem => {
-                        totalAlertRows++;
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td><strong>${alertItem.productName} (Lote)</strong></td>
-                            <td>${alertItem.sku || 'Lote Crítico'}</td>
-                            <td>${(alertItem.quantity || 0).toLocaleString('pt-BR')} un</td>
-                            <td style="color: var(--color-esg); font-weight: 600;">♻️ Risco Ambiental: Vence em ${alertItem.diasRestantes} dias</td>
-                            <td><span class="status-badge green">Log. Reversa</span></td>
-                        `;
-                        alertsTableBody.appendChild(row);
-                    });
+                // Renderiza os Gráficos Chart.js
+                if (currentTimelineData) {
+                    buildCharts(currentTimelineData);
                 }
 
-                if (totalAlertRows === 0) {
-                    alertsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--color-esg); font-weight: 600;">🌱 Nenhum alerta crítico detectado. Operação rodando em conformidade!</td></tr>`;
+                // Renderiza Tabela de Alertas com Badges Bootstrap
+                if (alertsTableBody) {
+                    alertsTableBody.innerHTML = '';
+                    let totalAlertRows = 0;
+
+                    if (Array.isArray(inventoryProducts)) {
+                        inventoryProducts.forEach(prod => {
+                            const statusVis = prod.statusVisual || { alertColor: 'blue', statusTag: 'Normal' };
+                            
+                            if (statusVis.alertColor === 'red' || statusVis.alertColor === 'orange' || statusVis.statusTag === 'Estoque Baixo' || statusVis.statusTag === 'Ruptura') {
+                                totalAlertRows++;
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td class="ps-4 fw-bold">${prod.name}</td>
+                                    <td class="text-muted">${prod.sku || 'N/A'}</td>
+                                    <td class="fw-semibold">${(prod.quantityInStock || 0).toLocaleString('pt-BR')} un</td>
+                                    <td>Atenção Logística</td>
+                                    <td class="pe-4"><span class="badge ${getBootstrapBadge(statusVis.alertColor)} px-2 py-1">${statusVis.statusTag}</span></td>
+                                `;
+                                alertsTableBody.appendChild(row);
+                            }
+                        });
+                    }
+
+                    if (totalAlertRows === 0) {
+                        alertsTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-success fw-bold py-4">🌱 Operação saudável. Nenhum alerta crítico.</td></tr>`;
+                    }
                 }
 
             } catch (error) {
-                console.error('[Dashboard Render Error Global]:', error.message);
+                console.error('[Dashboard Render Error]:', error.message);
             }
         };
 
         renderDashboardData();
+
+        // Garante a re-renderização dos gráficos ao alternar Tema Claro/Escuro
+        const themeBtn = document.getElementById('theme-toggle');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                setTimeout(() => { if (currentTimelineData) buildCharts(currentTimelineData); }, 150);
+            });
+        }
     }
 
     // =========================================================================
-    // 3. FLUXO DO MÓDULO DE ESTOQUE AVANÇADO (POP-UPS, MATRIZ E EXCLUSÃO)
+    // 4. MÓDULO DE ESTOQUE AVANÇADO (CRUD)
     // =========================================================================
-    const productForm = document.getElementById('product-form');
     const inventoryTableBody = document.getElementById('inventory-table-body');
+    const productForm = document.getElementById('product-form');
 
     if (inventoryTableBody) {
         let localProductsCache = [];
 
-        const activeUser = TokenManager.getUser();
-        if (activeUser) {
-            const display = document.getElementById('company-name-display');
-            if (display) display.innerText = `Almoxarifado Central: ${activeUser.company}`;
+        const searchNameInput = document.getElementById('search-name');
+        const searchCategoryInput = document.getElementById('search-category');
+        const searchStatusInput = document.getElementById('search-status');
+        const searchMaxPriceInput = document.getElementById('search-max-price');
+        const createModalElement = document.getElementById('create-modal');
+        const editModalElement = document.getElementById('edit-modal');
+        const createModal = createModalElement ? bootstrap.Modal.getOrCreateInstance(createModalElement) : null;
+        const editModal = editModalElement ? bootstrap.Modal.getOrCreateInstance(editModalElement) : null;
+
+        const expirationCheckbox = document.getElementById('isIndeterminateExpiration');
+        const expirationContainer = document.getElementById('expiration-container');
+        const expirationInput = document.getElementById('expirationDate');
+
+        if (expirationCheckbox && expirationContainer && expirationInput) {
+            const toggleExpirationField = () => {
+                expirationInput.required = !expirationCheckbox.checked;
+                expirationContainer.style.display = expirationCheckbox.checked ? 'none' : 'block';
+                if (expirationCheckbox.checked) expirationInput.value = '';
+            };
+            expirationCheckbox.addEventListener('change', toggleExpirationField);
+            toggleExpirationField();
         }
 
-        // Seleção de Controles de Filtros Avançados
-        const searchName = document.getElementById('search-name');
-        const searchCategory = document.getElementById('search-category');
-        const searchStatus = document.getElementById('search-status');
-        const searchMaxPrice = document.getElementById('search-max-price');
-
-        // Escutadores integrados para os inputs de filtros
-        if (searchName) {
-            [searchName, searchCategory, searchStatus, searchMaxPrice].forEach(el => {
-                el.addEventListener('input', () => applyAdvancedFilters());
-            });
-        }
-
-        const applyAdvancedFilters = () => {
-            const nameQ = searchName.value.toLowerCase().trim();
-            const catQ = searchCategory.value;
-            const statQ = searchStatus.value;
-            const priceQ = parseFloat(searchMaxPrice.value);
-
-            const filtered = localProductsCache.filter(p => {
-                const mName = p.name.toLowerCase().includes(nameQ) || p.sku.toLowerCase().includes(nameQ);
-                const mCat = catQ === "" || p.category === catQ;
-                const mStat = statQ === "" || p.statusVisual.statusTag === statQ;
-                const mPrice = isNaN(priceQ) || p.sellingPrice <= priceQ;
-                
-                return mName && mCat && mStat && mPrice;
-            });
-            renderTableRows(filtered);
-        };
-
-        const populateCategoryDropdown = (products) => {
-            const categories = [...new Set(products.map(p => p.category))];
-            searchCategory.innerHTML = '<option value="">Categorias</option>';
-            categories.forEach(cat => {
-                const opt = document.createElement('option'); opt.value = cat; opt.innerText = cat;
-                searchCategory.appendChild(opt);
-            });
-        };
-
-        // GESTÃO DOS MODAIS (POP-UPS)
-        window.openCreateModal = () => { 
-            document.getElementById('create-modal').style.display = 'flex'; 
-        };
-        
-        window.closeCreateModal = () => {
-            document.getElementById('create-modal').style.display = 'none';
-            if (productForm) productForm.reset();
-        };
+        window.openCreateModal = () => { if (createModal) createModal.show(); };
+        window.closeCreateModal = () => { if (createModal) createModal.hide(); if (productForm) productForm.reset(); };
 
         window.openEditModal = (id) => {
             const prod = localProductsCache.find(p => p._id === id);
             if (!prod) return;
-
             document.getElementById('edit-id').value = prod._id;
             document.getElementById('edit-name').value = prod.name;
             document.getElementById('edit-quantity').value = prod.quantityInStock;
             document.getElementById('edit-price').value = prod.sellingPrice;
-
-            const loc = prod.location || {};
-            document.getElementById('edit-sector').value = loc.sector || '';
-            document.getElementById('edit-row').value = loc.row || '';
-            document.getElementById('edit-building').value = loc.building || '';
-            document.getElementById('edit-floor').value = loc.floor || '';
-            document.getElementById('edit-apartment').value = loc.apartment || '';
-
-            document.getElementById('edit-modal').style.display = 'flex';
+            if (editModal) editModal.show();
         };
 
-        // GAVETA DE INDICADORES INDIVIDUAIS
-        window.expandProductMetrics = (id) => {
-            const prod = localProductsCache.find(p => p._id === id);
-            if (!prod) return;
-
-            document.getElementById('details-drawer').style.display = 'block';
-            document.getElementById('drawer-product-name').innerHTML = `📊 Métricas Individuais: <strong>${prod.name}</strong> <small>(SKU: ${prod.sku})</small>`;
-            
-            const loc = prod.location || {};
-            document.getElementById('drawer-location').innerText = `Setor ${loc.sector || 'N/D'} | Rua ${loc.row || 'N/D'} | Prédio ${loc.building || 'N/D'} | Vão ${loc.apartment || 'N/D'}`;
-            
-            const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-            document.getElementById('drawer-turnover').innerText = formatCurrency(prod.sellingPrice * prod.quantityInStock);
-            document.getElementById('drawer-status-tag').innerHTML = `<span class="status-badge ${prod.statusVisual.alertColor}">${prod.statusVisual.statusTag}</span>`;
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-
-        // EXCLUSÃO FÍSICA NO BANCO (DELETE)
         window.deleteProductClick = async (id, name) => {
-            const confirmation = confirm(`🚨 ATENÇÃO OPERACIONAL:\nDeseja realmente excluir permanentemente o produto "${name}" do inventário?`);
-            if (confirmation) {
+            if (confirm(`Deseja realmente excluir o produto "${name}"?`)) {
                 try {
-                    const result = await StockAPI.deleteProduct(id);
-                    alert(result.message || 'Produto removido com sucesso.');
+                    await StockAPI.deleteProduct(id);
+                    alert('Produto removido.');
                     loadInventoryTable();
-                } catch (error) { alert(`Falha ao remover item: ${error.message}`); }
+                } catch (error) { alert(`Falha ao remover: ${error.message}`); }
             }
         };
 
         const renderTableRows = (productsList) => {
             inventoryTableBody.innerHTML = '';
             if (productsList.length === 0) {
-                inventoryTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Nenhum insumo localizado no armazém.</td></tr>';
+                inventoryTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Nenhum insumo localizado.</td></tr>';
                 return;
             }
 
             productsList.forEach(p => {
                 const row = document.createElement('tr');
                 const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-                const loc = p.location || {};
-
+                const locationText = p.location ? `${p.location.sector || 'N/A'} / ${p.location.row || 'N/A'} / ${p.location.building || 'N/A'}` : 'Sem endereço';
+                const expirationText = p.isIndeterminateExpiration ? 'Inperecível' : (p.expirationDate ? new Date(p.expirationDate).toLocaleDateString('pt-BR') : 'Não informada');
                 row.innerHTML = `
-                    <td style="cursor:pointer;" onclick="expandProductMetrics('${p._id}')">
-                        <strong>🔗 ${p.name}</strong><br><small style="color:var(--text-secondary)">SKU: ${p.sku}</small>
-                    </td>
-                    <td style="font-family: monospace; font-size: 0.85rem;">S:${loc.sector || 'N/D'} | R:${loc.row || 'N/D'} | Vão:${loc.apartment || 'N/D'}</td>
-                    <td><strong>${p.quantityInStock.toLocaleString('pt-BR')}</strong> un</td>
-                    <td>${formatCurrency(p.sellingPrice)}</td>
-                    <td><span class="status-badge ${p.statusVisual.alertColor}">${p.statusVisual.statusTag}</span></td>
-                    <td style="text-align: center;">
-                        <button class="action-icon" title="Editar Parâmetros" onclick="openEditModal('${p._id}')">✏️</button>
-                        <button class="action-icon" title="Excluir Material" onclick="deleteProductClick('${p._id}', '${p.name}')" style="color:#dc3545;">🗑️</button>
+                    <td><strong class="text-primary">${p.name}</strong><br><small class="text-muted">SKU: ${p.sku || 'N/A'}</small></td>
+                    <td class="font-monospace small">${locationText}</td>
+                    <td class="fw-bold">${(p.quantityInStock || 0).toLocaleString('pt-BR')} un</td>
+                    <td>${formatCurrency(p.sellingPrice || 0)}</td>
+                    <td><span class="badge ${getBootstrapBadge(p.statusVisual.alertColor)} px-2 py-1">${p.statusVisual.statusTag}</span></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary border-0" onclick="toggleProductDetails('${p._id}')">📄</button>
+                        <button class="btn btn-sm btn-outline-secondary border-0" onclick="openEditModal('${p._id}')">✏️</button>
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="deleteProductClick('${p._id}', '${p.name}')">🗑️</button>
                     </td>
                 `;
+                row.addEventListener('click', (event) => {
+                    if (event.target.tagName === 'BUTTON') return;
+                    toggleProductDetails(p._id);
+                });
                 inventoryTableBody.appendChild(row);
             });
         };
 
-        const loadInventoryTable = async () => {
-            try {
-                inventoryTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Buscando posições...</td></tr>';
-                const products = await StockAPI.getInventory();
-                localProductsCache = products;
-                populateCategoryDropdown(products);
-                renderTableRows(products);
-            } catch (error) { inventoryTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Erro ao carregar inventário NoSQL.</td></tr>'; }
+        const populateFilterOptions = (products) => {
+            if (!searchCategoryInput) return;
+            const categories = [...new Set(products.map(product => product.category).filter(Boolean))].sort();
+            searchCategoryInput.innerHTML = '<option value="">Categoria</option>' + categories.map(category => `<option value="${category}">${category}</option>`).join('');
         };
 
-        // EVENTO DE CRIAÇÃO (SUBMIT DO FORMULÁRIO DE CADASTRO)
+        const applyInventoryFilters = () => {
+            const nameFilter = (searchNameInput?.value || '').trim().toLowerCase();
+            const categoryFilter = (searchCategoryInput?.value || '').trim().toLowerCase();
+            const statusFilter = (searchStatusInput?.value || '').trim();
+            const maxPriceFilter = parseFloat(searchMaxPriceInput?.value || '');
+
+            const filtered = localProductsCache.filter((product) => {
+                const matchesName = !nameFilter || `${product.name} ${product.sku || ''}`.toLowerCase().includes(nameFilter);
+                const matchesCategory = !categoryFilter || (product.category || '').toLowerCase() === categoryFilter;
+                const matchesStatus = !statusFilter || (product.statusVisual?.statusTag || '') === statusFilter;
+                const matchesPrice = Number.isNaN(maxPriceFilter) || (product.sellingPrice || 0) <= maxPriceFilter;
+                return matchesName && matchesCategory && matchesStatus && matchesPrice;
+            });
+
+            renderTableRows(filtered);
+        };
+
+        [searchNameInput, searchCategoryInput, searchStatusInput, searchMaxPriceInput].forEach((field) => {
+            if (!field) return;
+            field.addEventListener('input', applyInventoryFilters);
+            field.addEventListener('change', applyInventoryFilters);
+        });
+
+        window.toggleProductDetails = (id) => {
+            const product = localProductsCache.find(p => p._id === id);
+            const drawer = document.getElementById('details-drawer');
+            if (!product || !drawer) return;
+            document.getElementById('drawer-product-name').textContent = `📦 ${product.name}`;
+            document.getElementById('drawer-location').textContent = product.location ? `${product.location.sector || 'N/A'} / ${product.location.row || 'N/A'} / ${product.location.building || 'N/A'} / ${product.location.floor || 'N/A'} / ${product.location.apartment || 'N/A'}` : 'Sem endereço';
+            document.getElementById('drawer-turnover').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((product.sellingPrice || 0) * (product.quantityInStock || 0));
+            document.getElementById('drawer-status-tag').innerHTML = `<span class="badge ${getBootstrapBadge(product.statusVisual?.alertColor || 'blue')} px-2 py-1">${product.statusVisual?.statusTag || 'Normal'}</span>`;
+            document.getElementById('drawer-expiration').textContent = product.isIndeterminateExpiration ? 'Inperecível' : (product.expirationDate ? new Date(product.expirationDate).toLocaleDateString('pt-BR') : 'Não informada');
+            document.getElementById('drawer-category').textContent = product.category || 'Geral';
+            document.getElementById('drawer-limits').textContent = `${product.minimumStock || 0} / ${product.maximumStock || 0}`;
+            document.getElementById('drawer-supplier').textContent = product.supplier || 'Não informado';
+            drawer.style.display = 'block';
+        };
+
+        const loadInventoryTable = async () => {
+            try {
+                inventoryTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Buscando posições...</td></tr>';
+                const products = await StockAPI.getInventory();
+                localProductsCache = Array.isArray(products) ? products : [];
+                populateFilterOptions(localProductsCache);
+                applyInventoryFilters();
+            } catch (error) { inventoryTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Erro ao carregar inventário.</td></tr>'; }
+        };
+
         if (productForm) {
             productForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const checkboxExpiration = document.getElementById('isIndeterminateExpiration');
-                
                 const productPayload = {
                     name: document.getElementById('name').value.trim(),
                     category: document.getElementById('category').value.trim(),
@@ -412,96 +393,46 @@ document.addEventListener('DOMContentLoaded', () => {
                     quantityInStock: parseInt(document.getElementById('quantityInStock').value, 10),
                     minimumStock: parseInt(document.getElementById('minimumStock').value, 10),
                     maximumStock: parseInt(document.getElementById('maximumStock').value, 10),
-                    isIndeterminateExpiration: checkboxExpiration.checked,
+                    isIndeterminateExpiration: document.getElementById('isIndeterminateExpiration').checked,
+                    expirationDate: document.getElementById('expirationDate').value || null,
                     location: {
-                        sector: document.getElementById('sector').value.trim().toUpperCase(),
-                        row: document.getElementById('row').value.trim().toUpperCase(),
-                        building: document.getElementById('building').value.trim().toUpperCase(),
-                        floor: document.getElementById('floor').value.trim().toUpperCase(),
-                        apartment: document.getElementById('apartment').value.trim().toUpperCase()
+                        sector: document.getElementById('sector').value.trim(),
+                        row: document.getElementById('row').value.trim(),
+                        building: document.getElementById('building').value.trim(),
+                        floor: document.getElementById('floor').value.trim(),
+                        apartment: document.getElementById('apartment').value.trim()
                     }
                 };
 
-                if (!checkboxExpiration.checked) productPayload.expirationDate = document.getElementById('expirationDate').value;
-
                 try {
-                    const result = await StockAPI.createProduct(productPayload);
-                    alert(result.message || 'Produto cadastrado com sucesso!');
+                    await StockAPI.createProduct(productPayload);
+                    alert('Produto cadastrado com sucesso!');
                     closeCreateModal();
                     loadInventoryTable();
-                } catch (error) { alert(`Erro operacional: ${error.message}`); }
+                } catch (error) { alert(`Erro: ${error.message}`); }
             });
-
-            const checkboxExpiration = document.getElementById('isIndeterminateExpiration');
-            const expirationContainer = document.getElementById('expiration-container');
-            if (checkboxExpiration && expirationContainer) {
-                checkboxExpiration.addEventListener('change', (e) => {
-                    expirationContainer.style.display = e.target.checked ? 'none' : 'flex';
-                    document.getElementById('expirationDate').required = !e.target.checked;
-                });
-            }
         }
 
-        // EVENTO DE EDIÇÃO (SUBMIT DO FORMULÁRIO DO POP-UP)
-        document.getElementById('edit-product-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('edit-id').value;
-            const updatedFields = {
-                name: document.getElementById('edit-name').value.trim(),
-                quantityInStock: parseInt(document.getElementById('edit-quantity').value, 10),
-                sellingPrice: parseFloat(document.getElementById('edit-price').value),
-                location: {
-                    sector: document.getElementById('edit-sector').value.trim().toUpperCase(),
-                    row: document.getElementById('edit-row').value.trim().toUpperCase(),
-                    building: document.getElementById('edit-building').value.trim().toUpperCase(),
-                    floor: document.getElementById('edit-floor').value.trim().toUpperCase(),
-                    apartment: document.getElementById('edit-apartment').value.trim().toUpperCase()
-                }
-            };
+        const editForm = document.getElementById('edit-product-form');
+        if (editForm) {
+            editForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('edit-id').value;
+                const updatedFields = {
+                    name: document.getElementById('edit-name').value.trim(),
+                    quantityInStock: parseInt(document.getElementById('edit-quantity').value, 10),
+                    sellingPrice: parseFloat(document.getElementById('edit-price').value)
+                };
 
-            try {
-                const result = await StockAPI.updateProduct(id, updatedFields);
-                alert(result.message || 'Parâmetros logísticos consolidados!');
-                document.getElementById('edit-modal').style.display = 'none';
-                loadInventoryTable();
-            } catch (error) { alert(`Erro na atualização: ${error.message}`); }
-        });
+                try {
+                    await StockAPI.updateProduct(id, updatedFields);
+                    alert('Atualizado!');
+                    if (editModal) editModal.hide();
+                    loadInventoryTable();
+                } catch (error) { alert(`Erro: ${error.message}`); }
+            });
+        }
 
         loadInventoryTable();
-    }
-});
-
-// =========================================================================
-// 6. CONTROLADOR RESPONSIVO DA GAVETA MÓVEL
-// =========================================================================
-document.addEventListener('click', (e) => {
-    const sidebarElement = document.querySelector('.sidebar');
-    const clickedToggle = e.target.closest('#mobile-menu-btn') || e.target.closest('.menu-toggle-btn');
-    if (clickedToggle && sidebarElement) {
-        e.preventDefault();
-        e.stopPropagation();
-        const isOpen = sidebarElement.classList.toggle('mobile-open');
-        const btn = document.getElementById('mobile-menu-btn');
-        if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        return;
-    }
-    if (sidebarElement && sidebarElement.classList.contains('mobile-open')) {
-        if (!sidebarElement.contains(e.target)) {
-            sidebarElement.classList.remove('mobile-open');
-            const btn = document.getElementById('mobile-menu-btn');
-            if (btn) btn.setAttribute('aria-expanded', 'false');
-        }
-    }
-});
-
-// Fechar menu com tecla Esc quando aberto
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        const sidebarElement = document.querySelector('.sidebar');
-        if (sidebarElement && sidebarElement.classList.contains('mobile-open')) {
-            sidebarElement.classList.remove('mobile-open');
-            const btn = document.getElementById('mobile-menu-btn');
-            if (btn) btn.setAttribute('aria-expanded', 'false');
-        }
     }
 });

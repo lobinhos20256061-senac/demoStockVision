@@ -1,4 +1,4 @@
-# ⚡ Guia Rápido - 5 Minutos
+# ⚡ Guia Rápido - 5 Minutos (StockVision 2.0)
 
 Comece com o StockVision em 5 minutos! ⏱️
 

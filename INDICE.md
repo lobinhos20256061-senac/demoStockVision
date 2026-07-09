@@ -316,10 +316,10 @@ Viu um erro? Quer adicionar algo?
 
 ## 📄 Versão e Atualização
 
-- **Versão do Projeto:** 1.0.0
-- **Data da Documentação:** 2026-07-06
-- **Última Atualização:** 2026-07-06
-- **Próxima Revisão:** 2026-10-06
+- **Versão do Projeto:** 2.0.0
+- **Data da Documentação:** 2026-07-09
+- **Última Atualização:** 2026-07-09
+- **Próxima Revisão:** 2026-10-09
 
 ---
 

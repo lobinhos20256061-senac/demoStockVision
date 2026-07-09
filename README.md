@@ -1,22 +1,23 @@
 # 📦 StockVision - Sistema Inteligente de Gestão de Estoque e Logística
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-ISC-green.svg)
 ![Status](https://img.shields.io/badge/status-Ativo-success.svg)
 
 ## 🎯 Sobre o Projeto
 
-**StockVision** é um sistema inteligente de gestão de estoque e logística com foco em sustentabilidade (ESG - Environmental, Social, Governance) desenvolvido como projeto integrador do SENAC. A plataforma oferece uma solução completa para gerenciamento de inventário, análise de demanda com inteligência artificial, logística reversa e métricas de sustentabilidade.
+**StockVision 2.0** é um sistema inteligente de gestão de estoque e logística com foco em sustentabilidade (ESG - Environmental, Social, Governance), desenvolvido como projeto integrador do SENAC. A plataforma oferece uma solução completa para gerenciamento de inventário, análise de demanda, logística reversa, métricas ESG e uma interface moderna, responsiva e mais estável.
 
 ### Principais Características
 
 ✅ **Gestão de Estoque Inteligente** - Rastreamento em tempo real com endereçamento WMS  
+✅ **Filtros de Inventário** - Busca, categoria, status e preço máximo com resposta imediata  
 ✅ **Motor de Previsão de Demanda** - IA para otimizar quantidades de reposição  
-✅ **Logística Reversa** - Economia circular e retorno de produtos  
+✅ **Logística Reversa** - Cadastro e acompanhamento com seleção de produtos carregados automaticamente  
 ✅ **Métricas ESG** - Rastreamento de impacto ambiental e social  
 ✅ **Gestão de Parceiros** - Integração com fornecedores e transportadoras  
 ✅ **Autenticação Segura** - JWT com criptografia bcrypt  
-✅ **Dashboard Responsivo** - Interface moderna e intuitiva  
+✅ **Dashboard Responsivo** - Interface moderna, Bootstrap 5 e experiência aprimorada  
 
 ---
 
@@ -78,7 +79,7 @@ StockVision/
 
 ### Pré-requisitos
 
-- **Node.js** >= 14.x
+- **Node.js** >= 18.x
 - **npm** ou **yarn**
 - **MongoDB** (local ou Atlas)
 
@@ -497,5 +498,5 @@ Este projeto está sob a licença **ISC** - consulte o arquivo LICENSE para deta
 ---
 
 **Última atualização**: 2026-07-06  
-**Versão**: 1.0.0  
+**Versão**: 2.0.0
 **Status**: ✅ Ativo e em desenvolvimento

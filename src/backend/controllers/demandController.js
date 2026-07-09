@@ -60,6 +60,7 @@ exports.getDemandForecast = async (req, res) => {
                 predictedDemand: predictedDemandNextMonth,
                 sugestaoCompra: sugestaoCompraQtd,
                 investimentoEstimado: investimentoEstimado,
+                investimentoEstimated: investimentoEstimado,
                 acao: acaoRecomendada,
                 criticidade: statusCritico ? "danger" : (p.quantityInStock < pontoDePedido * 1.2 ? "warning" : "success")
             };

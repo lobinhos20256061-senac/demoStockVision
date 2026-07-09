@@ -1,13 +1,13 @@
 {
   "name": "stockvision-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Sistema inteligente de gestão de estoque e logística com foco em ESG - SENAC",
   "main": "src/backend/server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node src/backend/server.js",
     "dev": "nodemon src/backend/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "keywords": [
     "wms",

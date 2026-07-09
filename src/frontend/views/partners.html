@@ -4,173 +4,113 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StockVision - Recebimento por Nota Fiscal (NF-e)</title>
-    <link rel="stylesheet" href="../assets/css/global.css" />
-    <link rel="stylesheet" href="../assets/css/dashboard.css" />
-    <link rel="stylesheet" href="../assets/css/stock.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="../assets/css/modern.css" />
   </head>
   <body>
-    <div class="dashboard-container">
-      <aside class="sidebar">
-        <div class="sidebar-brand">
-          <h2>StockVision</h2>
-          <p>Veja o futuro. Controle o resultado.</p>
+    <div class="app-shell d-flex flex-column flex-md-row">
+      <aside class="sidebar-panel offcanvas-md offcanvas-start d-flex flex-column p-3 p-md-4" id="sidebarMenu" tabindex="-1">
+        <div class="sidebar-brand p-3 mb-4 text-center">
+          <h2 class="fw-bold fs-4 mb-1 text-primary">StockVision</h2>
+          <p class="text-muted small mb-0">Operação com fornecedores e recebimento</p>
         </div>
-        <ul class="sidebar-menu">
-          <li><a href="dashboard.html">📊 Dashboard</a></li>
-          <li><a href="stock.html">📦 Estoque</a></li>
-          <li><a href="demand.html">🔮 Previsão de Demanda</a></li>
-          <li class="active">
-            <a href="partners.html">🤝 Pedidos & Fornecedores</a>
-          </li>
-          <li><a href="reverse.html">♻️ Logística Reversa</a></li>
-          <li><a href="esg.html">🌱 Sustentabilidade (ESG)</a></li>
-          <li class="nav-item">
-            <a
-              href="#"
-              onclick="handleUserLogout()"
-              style="color: #dc3545 !important; font-weight: bold"
-            >
-              ❌ Logout
-            </a>
-          </li>
+        <ul class="sidebar-nav nav nav-pills flex-column gap-1 mb-auto">
+          <li class="nav-item"><a href="dashboard.html" class="nav-link"><i class="bi bi-bar-chart-fill me-2"></i> Dashboard</a></li>
+          <li class="nav-item"><a href="stock.html" class="nav-link"><i class="bi bi-box-seam me-2"></i> Estoque</a></li>
+          <li class="nav-item"><a href="demand.html" class="nav-link"><i class="bi bi-graph-up-arrow me-2"></i> Previsão de Demanda</a></li>
+          <li class="nav-item"><a href="partners.html" class="nav-link active"><i class="bi bi-people-fill me-2"></i> Pedidos & Fornecedores</a></li>
+          <li class="nav-item"><a href="reverse.html" class="nav-link"><i class="bi bi-arrow-repeat me-2"></i> Logística Reversa</a></li>
+          <li class="nav-item"><a href="esg.html" class="nav-link"><i class="bi bi-tree-fill me-2"></i> Sustentabilidade (ESG)</a></li>
         </ul>
+        <a href="#" onclick="handleUserLogout()" class="btn btn-outline-danger mt-3"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
       </aside>
 
-      <main class="main-content">
-        <header class="top-bar">
-          <div class="user-info">
-            <h3>🤝 Pedidos & Fornecedores</h3>
-            <p id="company-name-display">
-              Carregando almoxarifado corporativo...
-            </p>
+      <main class="flex-grow-1 p-3 p-md-4">
+        <header class="topbar rounded-4 p-3 p-md-4 mb-4 d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+              <i class="bi bi-list"></i>
+            </button>
+            <div>
+              <h3 class="mb-0 fw-bold">🤝 Pedidos & Fornecedores</h3>
+              <p class="mb-0 text-muted small" id="company-name-display">Carregando almoxarifado corporativo...</p>
+            </div>
           </div>
-          <button id="mobile-menu-btn" class="menu-toggle-btn" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">☰</button>
-          <button
-            id="theme-toggle"
-            class="theme-btn"
-            aria-label="Alternar tema"
-          >
-            🌓
-          </button>
+          <button id="theme-toggle" class="btn btn-outline-secondary rounded-circle" aria-label="Alternar tema"><i class="bi bi-moon-stars-fill"></i></button>
         </header>
 
-        <section class="data-section">
-          <h3>🤝 Cadastro de Fornecedores</h3>
-          <div style="display:grid; gap:1.5rem; margin-top:1rem;">
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem;">
-              <form id="partner-form" style="display:flex; flex-direction:column; gap:1rem;">
-                <div class="input-group"><label>Nome da Empresa</label><input type="text" id="partner-companyName" required></div>
-                <div class="input-group"><label>E-mail</label><input type="email" id="partner-email" required></div>
-                <div class="input-group"><label>Telefone</label><input type="tel" id="partner-phone" required></div>
-                <div class="input-group"><label>Categoria Atendida</label><input type="text" id="partner-categorySupplied" placeholder="Ex: Mercearia, Bebidas" required></div>
-                <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:1rem;">
-                  <div class="input-group"><label>Prazo de Entrega (dias)</label><input type="number" id="partner-deliveryDays" min="1" required></div>
-                  <div class="input-group"><label>Faixa de Preço</label><select id="partner-priceTier" required><option value="">Selecione</option><option value="Baixo">Baixo</option><option value="Médio">Médio</option><option value="Alto">Alto</option></select></div>
+        <ul class="nav nav-tabs mb-4" id="operationsTabs" role="tablist">
+          <li class="nav-item" role="presentation"><button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-pane" type="button" role="tab">📥 Pedidos</button></li>
+          <li class="nav-item" role="presentation"><button class="nav-link" id="suppliers-tab" data-bs-toggle="tab" data-bs-target="#suppliers-pane" type="button" role="tab">🤝 Fornecedores</button></li>
+        </ul>
+
+        <div class="tab-content">
+          <section class="tab-pane fade show active" id="orders-pane" role="tabpanel" aria-labelledby="orders-tab">
+            <div class="row g-4">
+              <div class="col-12 col-xl-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                  <div class="card-body">
+                    <h4 class="fw-bold mb-3">📥 Ingestão de texto bruto de NF-e</h4>
+                    <p class="text-muted small">Cole o conteúdo estruturado das notas para processar automaticamente os itens recebidos.</p>
+                    <form id="xml-invoice-form">
+                      <textarea id="xml-input" rows="15" class="form-control font-monospace" placeholder="Cole as tags da nota fiscal aqui..." required></textarea>
+                      <button type="submit" class="btn btn-primary mt-3 w-100">⚙️ Processar Nota e Estocar Itens</button>
+                    </form>
+                  </div>
                 </div>
-                <div class="input-group"><label>Condição de Pagamento</label><select id="partner-paymentCondition" required><option value="">Selecione</option><option value="Pix">Pix</option><option value="Boleto">Boleto</option><option value="À Vista">À Vista</option><option value="Crédito">Crédito</option></select></div>
-                <button type="submit" class="btn" style="width:auto; padding:0.8rem;">➕ Cadastrar Fornecedor</button>
-              </form>
-              <div>
-                <h4>Fornecedores Cadastrados</h4>
-                <div class="table-responsive" style="margin-top:1rem; max-height:380px; overflow-y:auto;">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Empresa</th>
-                        <th>Categoria</th>
-                        <th>Prazo</th>
-                        <th>Preço</th>
-                      </tr>
-                    </thead>
-                    <tbody id="partner-table-body">
-                      <tr><td colspan="4" style="text-align:center; color:var(--text-secondary);">Nenhum fornecedor carregado ainda.</td></tr>
-                    </tbody>
-                  </table>
+              </div>
+              <div class="col-12 col-xl-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                  <div class="card-body">
+                    <h4 class="fw-bold mb-3">📋 Relatório de auditoria de ingestão</h4>
+                    <div class="table-responsive">
+                      <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light"><tr><th>Material identificado</th><th>Ação operacional NoSQL</th></tr></thead>
+                        <tbody id="xml-report-body"><tr><td colspan="2" class="text-center text-muted py-4">Nenhuma nota fiscal na fila de processamento.</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
-
-        <div
-          class="stock-workspace"
-          style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem"
-        >
-          <section class="data-section">
-            <h3>📥 Ingestão de Texto Bruto de NF-e</h3>
-            <p
-              style="
-                font-size: 0.85rem;
-                color: var(--text-secondary);
-                margin-bottom: 1rem;
-              "
-            >
-              Cole o conteúdo estruturado ou as tags do arquivo XML gerado pela
-              SEFAZ do seu fornecedor abaixo para rodar o desempacotamento de
-              itens automáticos.
-            </p>
-            <form
-              id="xml-invoice-form"
-              style="display: flex; flex-direction: column; gap: 1rem"
-            >
-              <textarea
-                id="xml-input"
-                rows="15"
-                placeholder="Cole as tags da nota fiscal aqui... Ex: <emit><xNome>Distribuidora SA</xNome></emit> <det><xProd>Arroz</xProd><qCom>100</qCom><vUnCom>5.50</vUnCom></det>"
-                required
-                style="
-                  width: 100%;
-                  padding: 0.75rem;
-                  border-radius: 6px;
-                  border: 2px solid var(--border-color);
-                  background: var(--bg-body);
-                  color: var(--text-primary);
-                  font-family: monospace;
-                  font-size: 0.85rem;
-                  outline: none;
-                  resize: vertical;
-                "
-              ></textarea>
-              <button
-                type="submit"
-                class="btn"
-                style="width: 100%; font-weight: bold; padding: 0.8rem"
-              >
-                ⚙️ Processar Nota e Estocar Itens
-              </button>
-            </form>
           </section>
 
-          <section class="data-section">
-            <h3>📋 Relatório de Auditoria de Ingestão</h3>
-            <div
-              class="table-responsive"
-              style="margin-top: 1rem; max-height: 430px; overflow-y: auto"
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th>Material Identificado</th>
-                    <th>Ação Operacional NoSQL</th>
-                  </tr>
-                </thead>
-                <tbody id="xml-report-body">
-                  <tr>
-                    <td
-                      colspan="2"
-                      style="text-align: center; color: var(--text-secondary)"
-                    >
-                      Nenhuma nota fiscal na fila de processamento.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+          <section class="tab-pane fade" id="suppliers-pane" role="tabpanel" aria-labelledby="suppliers-tab">
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body">
+                <h4 class="fw-bold mb-3">🤝 Cadastro de fornecedores</h4>
+                <div class="row g-4">
+                  <form id="partner-form" class="col-12 col-lg-5">
+                    <div class="mb-3"><label class="form-label">Nome da Empresa</label><input type="text" id="partner-companyName" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">E-mail</label><input type="email" id="partner-email" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">Telefone</label><input type="tel" id="partner-phone" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">Categoria Atendida</label><input type="text" id="partner-categorySupplied" class="form-control" placeholder="Ex: Mercearia, Bebidas" required></div>
+                    <div class="row g-3">
+                      <div class="col-12 col-md-6"><label class="form-label">Prazo de Entrega (dias)</label><input type="number" id="partner-deliveryDays" class="form-control" min="1" required></div>
+                      <div class="col-12 col-md-6"><label class="form-label">Faixa de Preço</label><select id="partner-priceTier" class="form-select" required><option value="">Selecione</option><option value="Baixo">Baixo</option><option value="Médio">Médio</option><option value="Alto">Alto</option></select></div>
+                    </div>
+                    <div class="mt-3 mb-3"><label class="form-label">Condição de Pagamento</label><select id="partner-paymentCondition" class="form-select" required><option value="">Selecione</option><option value="Pix">Pix</option><option value="Boleto">Boleto</option><option value="À Vista">À Vista</option><option value="Crédito">Crédito</option></select></div>
+                    <button type="submit" class="btn btn-primary">➕ Cadastrar Fornecedor</button>
+                  </form>
+                  <div class="col-12 col-lg-7">
+                    <h5 class="fw-bold mb-3">Fornecedores cadastrados</h5>
+                    <div class="table-responsive">
+                      <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light"><tr><th>Empresa</th><th>Categoria</th><th>Prazo</th><th>Preço</th></tr></thead>
+                        <tbody id="partner-table-body"><tr><td colspan="4" class="text-center text-muted py-4">Nenhum fornecedor carregado ainda.</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
       </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../assets/js/authGuard.js"></script>
     <script src="../assets/js/theme.js"></script>
     <script src="../assets/js/api.js"></script>
