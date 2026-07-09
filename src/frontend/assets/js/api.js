@@ -335,5 +335,25 @@ const PartnerAPI = {
             console.error('[API Partner - Create Partner Error]:', error.message);
             throw error;
         }
+    },
+
+    updatePartner: async (id, partnerPayload) => {
+        try {
+            const token = TokenManager.getToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+
+            const response = await fetch(`${BASE_URL}/supply/partners/${id}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(partnerPayload)
+            });
+            const data = await safeJsonResponse(response);
+            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar fornecedor.');
+            return data;
+        } catch (error) {
+            console.error('[API Partner - Update Partner Error]:', error.message);
+            throw error;
+        }
     }
 };

@@ -97,8 +97,8 @@
                     <h5 class="fw-bold mb-3">Fornecedores cadastrados</h5>
                     <div class="table-responsive">
                       <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light"><tr><th>Empresa</th><th>Categoria</th><th>Prazo</th><th>Preço</th></tr></thead>
-                        <tbody id="partner-table-body"><tr><td colspan="4" class="text-center text-muted py-4">Nenhum fornecedor carregado ainda.</td></tr></tbody>
+                        <thead class="table-light"><tr><th>Empresa</th><th>Categoria</th><th>Prazo</th><th>Preço</th><th>Ações</th></tr></thead>
+                        <tbody id="partner-table-body"><tr><td colspan="5" class="text-center text-muted py-4">Nenhum fornecedor carregado ainda.</td></tr></tbody>
                       </table>
                     </div>
                   </div>
@@ -108,6 +108,32 @@
           </section>
         </div>
       </main>
+    </div>
+
+    <div class="modal fade" id="edit-partner-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold">✏️ Editar fornecedor</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="edit-partner-form">
+              <input type="hidden" id="edit-partner-id">
+              <div class="mb-3"><label class="form-label">Nome da Empresa</label><input type="text" id="edit-partner-companyName" class="form-control" required></div>
+              <div class="mb-3"><label class="form-label">E-mail</label><input type="email" id="edit-partner-email" class="form-control" required></div>
+              <div class="mb-3"><label class="form-label">Telefone</label><input type="tel" id="edit-partner-phone" class="form-control" required></div>
+              <div class="mb-3"><label class="form-label">Categoria Atendida</label><input type="text" id="edit-partner-categorySupplied" class="form-control" required></div>
+              <div class="row g-3">
+                <div class="col-12 col-md-6"><label class="form-label">Prazo de Entrega (dias)</label><input type="number" id="edit-partner-deliveryDays" class="form-control" min="1" required></div>
+                <div class="col-12 col-md-6"><label class="form-label">Faixa de Preço</label><select id="edit-partner-priceTier" class="form-select" required><option value="">Selecione</option><option value="Baixo">Baixo</option><option value="Médio">Médio</option><option value="Alto">Alto</option></select></div>
+              </div>
+              <div class="mt-3"><label class="form-label">Condição de Pagamento</label><select id="edit-partner-paymentCondition" class="form-select" required><option value="">Selecione</option><option value="Pix">Pix</option><option value="Boleto">Boleto</option><option value="À Vista">À Vista</option><option value="Crédito">Crédito</option></select></div>
+              <button type="submit" class="btn btn-primary mt-4 w-100">💾 Salvar alterações</button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -128,6 +154,10 @@
         const reportBody = document.getElementById("xml-report-body");
         const partnerForm = document.getElementById("partner-form");
         const partnerTableBody = document.getElementById("partner-table-body");
+        const editPartnerModalElement = document.getElementById("edit-partner-modal");
+        const editPartnerModal = editPartnerModalElement ? new bootstrap.Modal(editPartnerModalElement) : null;
+        const editPartnerForm = document.getElementById("edit-partner-form");
+        let partnerEditingId = null;
 
         const activeUser = TokenManager.getUser();
         if (activeUser) {
@@ -150,6 +180,7 @@
               <td>${partner.categorySupplied}</td>
               <td>${partner.deliveryDays} dias</td>
               <td>${partner.priceTier}</td>
+              <td><button class="btn btn-sm btn-outline-secondary" type="button" onclick="openPartnerEditModal('${partner._id}')">✏️</button></td>
             `;
             partnerTableBody.appendChild(row);
           });
@@ -158,12 +189,28 @@
         const loadPartnerList = async () => {
           try {
             const partners = await PartnerAPI.getPartners();
-            renderPartnerRows(partners);
+            window.__partnerCache = Array.isArray(partners) ? partners : [];
+            renderPartnerRows(window.__partnerCache);
           } catch (error) {
             partnerTableBody.innerHTML =
               '<tr><td colspan="4" style="text-align:center; color:var(--color-rupture);">Falha ao carregar fornecedores.</td></tr>';
             console.error('[Partners Page] Load Partners Error:', error.message);
           }
+        };
+
+        window.openPartnerEditModal = (partnerId) => {
+          const partner = (window.__partnerCache || []).find((item) => item._id === partnerId);
+          if (!partner) return;
+          partnerEditingId = partnerId;
+          document.getElementById('edit-partner-id').value = partner._id;
+          document.getElementById('edit-partner-companyName').value = partner.companyName || '';
+          document.getElementById('edit-partner-email').value = partner.email || '';
+          document.getElementById('edit-partner-phone').value = partner.phone || '';
+          document.getElementById('edit-partner-categorySupplied').value = partner.categorySupplied || '';
+          document.getElementById('edit-partner-deliveryDays').value = partner.deliveryDays || '';
+          document.getElementById('edit-partner-priceTier').value = partner.priceTier || '';
+          document.getElementById('edit-partner-paymentCondition').value = partner.paymentCondition || '';
+          if (editPartnerModal) editPartnerModal.show();
         };
 
         partnerForm.addEventListener('submit', async (e) => {
@@ -194,6 +241,29 @@
             const submitBtn = partnerForm.querySelector('.btn');
             submitBtn.disabled = false;
             submitBtn.innerText = '➕ Cadastrar Fornecedor';
+          }
+        });
+
+        editPartnerForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          if (!partnerEditingId) return;
+          const partnerPayload = {
+            companyName: document.getElementById('edit-partner-companyName').value.trim(),
+            email: document.getElementById('edit-partner-email').value.trim(),
+            phone: document.getElementById('edit-partner-phone').value.trim(),
+            categorySupplied: document.getElementById('edit-partner-categorySupplied').value.trim(),
+            deliveryDays: Number(document.getElementById('edit-partner-deliveryDays').value),
+            priceTier: document.getElementById('edit-partner-priceTier').value,
+            paymentCondition: document.getElementById('edit-partner-paymentCondition').value
+          };
+
+          try {
+            const result = await PartnerAPI.updatePartner(partnerEditingId, partnerPayload);
+            alert(result.message || 'Fornecedor atualizado com sucesso!');
+            if (editPartnerModal) editPartnerModal.hide();
+            await loadPartnerList();
+          } catch (error) {
+            alert(`Falha ao atualizar fornecedor: ${error.message}`);
           }
         });
 

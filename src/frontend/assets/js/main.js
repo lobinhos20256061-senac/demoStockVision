@@ -279,10 +279,40 @@ document.addEventListener('DOMContentLoaded', () => {
         window.openEditModal = (id) => {
             const prod = localProductsCache.find(p => p._id === id);
             if (!prod) return;
-            document.getElementById('edit-id').value = prod._id;
-            document.getElementById('edit-name').value = prod.name;
-            document.getElementById('edit-quantity').value = prod.quantityInStock;
-            document.getElementById('edit-price').value = prod.sellingPrice;
+            const setValue = (idValue, value) => {
+                const el = document.getElementById(idValue);
+                if (el) el.value = value ?? '';
+            };
+            const setChecked = (idValue, value) => {
+                const el = document.getElementById(idValue);
+                if (el) el.checked = !!value;
+            };
+
+            setValue('edit-id', prod._id);
+            setValue('edit-name', prod.name);
+            setValue('edit-category', prod.category || '');
+            setValue('edit-acquisitionCost', prod.acquisitionCost ?? 0);
+            setValue('edit-quantity', prod.quantityInStock ?? 0);
+            setValue('edit-price', prod.sellingPrice ?? 0);
+            setValue('edit-minimumStock', prod.minimumStock ?? 0);
+            setValue('edit-maximumStock', prod.maximumStock ?? 0);
+            setValue('edit-supplier', prod.supplier || '');
+            setChecked('edit-isIndeterminateExpiration', prod.isIndeterminateExpiration);
+            const expirationDate = prod.expirationDate ? new Date(prod.expirationDate).toISOString().slice(0, 10) : '';
+            setValue('edit-expirationDate', expirationDate);
+            const loc = prod.location || {};
+            setValue('edit-sector', loc.sector || '');
+            setValue('edit-row', loc.row || '');
+            setValue('edit-building', loc.building || '');
+            setValue('edit-floor', loc.floor || '');
+            setValue('edit-apartment', loc.apartment || '');
+            const expirationContainer = document.getElementById('edit-expiration-container');
+            const expirationInput = document.getElementById('edit-expirationDate');
+            const expirationCheckbox = document.getElementById('edit-isIndeterminateExpiration');
+            if (expirationContainer && expirationInput && expirationCheckbox) {
+                expirationInput.disabled = expirationCheckbox.checked;
+                expirationContainer.style.display = expirationCheckbox.checked ? 'none' : 'block';
+            }
             if (editModal) editModal.show();
         };
 
@@ -420,8 +450,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const id = document.getElementById('edit-id').value;
                 const updatedFields = {
                     name: document.getElementById('edit-name').value.trim(),
-                    quantityInStock: parseInt(document.getElementById('edit-quantity').value, 10),
-                    sellingPrice: parseFloat(document.getElementById('edit-price').value)
+                    category: document.getElementById('edit-category').value.trim(),
+                    acquisitionCost: parseFloat(document.getElementById('edit-acquisitionCost').value || 0),
+                    sellingPrice: parseFloat(document.getElementById('edit-price').value || 0),
+                    quantityInStock: parseInt(document.getElementById('edit-quantity').value || 0, 10),
+                    minimumStock: parseInt(document.getElementById('edit-minimumStock').value || 0, 10),
+                    maximumStock: parseInt(document.getElementById('edit-maximumStock').value || 0, 10),
+                    supplier: document.getElementById('edit-supplier').value.trim(),
+                    isIndeterminateExpiration: document.getElementById('edit-isIndeterminateExpiration').checked,
+                    expirationDate: document.getElementById('edit-isIndeterminateExpiration').checked ? null : document.getElementById('edit-expirationDate').value || null,
+                    location: {
+                        sector: document.getElementById('edit-sector').value.trim(),
+                        row: document.getElementById('edit-row').value.trim(),
+                        building: document.getElementById('edit-building').value.trim(),
+                        floor: document.getElementById('edit-floor').value.trim(),
+                        apartment: document.getElementById('edit-apartment').value.trim()
+                    }
                 };
 
                 try {

@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const PartnerSchema = new mongoose.Schema({
+    company: {
+        type: String,
+        required: [true, 'A empresa do parceiro é obrigatória.'],
+        trim: true
+    },
     companyName: {
         type: String,
         required: [true, 'O nome da empresa parceira é obrigatório.'],
