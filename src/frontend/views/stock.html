@@ -77,6 +77,7 @@
                         </div>
                     </div>
                     <div class="col-12 col-xl-4 text-xl-end">
+                        <button class="btn btn-outline-primary px-4 me-2" onclick="openBarcodeScannerModal()"><i class="bi bi-qr-code-scan me-2"></i>Ler Código de Barras</button>
                         <button class="btn btn-primary px-4" onclick="openCreateModal()"><i class="bi bi-plus-circle me-2"></i>Novo Produto</button>
                     </div>
                 </div>
@@ -139,6 +140,7 @@
                         <div class="row g-3">
                             <div class="col-12 col-md-6"><label class="form-label">Nome do Produto / Material *</label><input type="text" id="name" class="form-control" required></div>
                             <div class="col-12 col-md-6"><label class="form-label">Categoria Mercadológica *</label><input type="text" id="category" class="form-control" placeholder="Ex: Bebidas, Mercearia" required></div>
+                            <div class="col-12 col-md-6"><label class="form-label">Código de Barras (EAN/UPC)</label><input type="text" id="barcode" class="form-control" placeholder="Opcional - Digite ou leia"></div>
                             <div class="col-12 col-md-6"><label class="form-label">Custo de Aquisição (R$) *</label><input type="number" id="acquisitionCost" class="form-control" step="0.01" required></div>
                             <div class="col-12 col-md-6"><label class="form-label">Preço de Venda (R$) *</label><input type="number" id="sellingPrice" class="form-control" step="0.01" required></div>
                             <div class="col-12 col-md-4"><label class="form-label">Qtd Inicial *</label><input type="number" id="quantityInStock" class="form-control" required></div>
@@ -180,7 +182,8 @@
                             <div class="col-12 col-md-6"><label class="form-label">Preço de Venda (R$)</label><input type="number" id="edit-price" class="form-control" step="0.01" required></div>
                             <div class="col-12 col-md-6"><label class="form-label">Estoque Mínimo</label><input type="number" id="edit-minimumStock" class="form-control"></div>
                             <div class="col-12 col-md-6"><label class="form-label">Estoque Máximo</label><input type="number" id="edit-maximumStock" class="form-control"></div>
-                            <div class="col-12"><label class="form-label">Fornecedor</label><input type="text" id="edit-supplier" class="form-control"></div>
+                            <div class="col-12 col-md-6"><label class="form-label">Fornecedor</label><input type="text" id="edit-supplier" class="form-control"></div>
+                            <div class="col-12 col-md-6"><label class="form-label">Código de Barras</label><input type="text" id="edit-barcode" class="form-control"></div>
                         </div>
                         <div class="mt-3">
                             <div class="form-check"><input class="form-check-input" type="checkbox" id="edit-isIndeterminateExpiration"><label class="form-check-label" for="edit-isIndeterminateExpiration">Este material não possui data de validade</label></div>
@@ -210,6 +213,54 @@
             }
         }
     </script>
+    <div class="modal fade" id="barcode-scanner-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">📷 Leitor de Código de Barras</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closeBarcodeScannerModal()"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <ul class="nav nav-tabs px-3" id="scannerTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera-pane" type="button" role="tab" onclick="onScannerTabChange('camera')">🎥 Câmera / Webcam</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="device-tab" data-bs-toggle="tab" data-bs-target="#device-pane" type="button" role="tab" onclick="onScannerTabChange('device')">🔌 Scanner Físico (USB/BT)</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content p-3">
+                        <div class="tab-pane fade show active" id="camera-pane" role="tabpanel">
+                            <p class="text-muted small">Posicione o código de barras na frente da câmera. Ele será detectado automaticamente.</p>
+                            <div id="interactive" style="width: 100%; height: 280px; position: relative; overflow: hidden; background: #000; border-radius: 8px;">
+                                <video style="width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0;"></video>
+                                <canvas class="drawingBuffer" style="position: absolute; top: 0; left: 0; pointer-events: none; width: 100%; height: 100%;"></canvas>
+                                <div style="position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; background: red; opacity: 0.6; transform: translateY(-50%); box-shadow: 0 0 8px red;"></div>
+                            </div>
+                            <div class="text-center mt-3">
+                                <span class="badge bg-secondary-subtle text-secondary" id="camera-status">Carregando câmera...</span>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="device-pane" role="tabpanel">
+                            <p class="text-muted small">Se você possui um leitor de código de barras conectado (USB ou Bluetooth), focalize o campo abaixo e faça a leitura do código.</p>
+                            <div class="mb-3">
+                                <label class="form-label">Leitura de Entrada</label>
+                                <input type="text" id="scanner-device-input" class="form-control form-control-lg text-center" placeholder="Aguardando bip do leitor..." autofocus autocomplete="off">
+                            </div>
+                            <div class="text-center">
+                                <span class="badge bg-info-subtle text-info">O scanner físico geralmente envia o código seguido de um 'Enter'</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeBarcodeScannerModal()">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../assets/js/authGuard.js"></script>
     <script src="../assets/js/theme.js"></script>

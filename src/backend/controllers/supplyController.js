@@ -138,3 +138,15 @@ exports.updatePartner = async (req, res) => {
         return res.status(400).json({ message: 'Erro ao atualizar fornecedor.', error: error.message });
     }
 };
+
+exports.deletePartner = async (req, res) => {
+    try {
+        const partner = await Partner.findOneAndDelete({ _id: req.params.id, company: req.user?.company });
+        if (!partner) {
+            return res.status(404).json({ message: 'Fornecedor não localizado para exclusão nesta empresa.' });
+        }
+        return res.status(200).json({ message: 'Fornecedor removido com sucesso!' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Erro ao remover fornecedor.', error: error.message });
+    }
+};

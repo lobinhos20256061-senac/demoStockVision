@@ -118,3 +118,104 @@ test('deve atualizar um fornecedor já existente da empresa autenticada', async 
     Partner.findOne = originalFindOne;
   }
 });
+
+test('deve excluir um fornecedor da empresa autenticada', async () => {
+  let deletedId = null;
+  let deletedCompany = null;
+  const originalFindOneAndDelete = Partner.findOneAndDelete;
+
+  Partner.findOneAndDelete = async (filter) => {
+    deletedId = filter._id;
+    deletedCompany = filter.company;
+    return { _id: filter._id, companyName: 'Fornecedor Excluido' };
+  };
+
+  try {
+    const req = {
+      params: { id: 'partner-to-delete' },
+      user: { company: 'Empresa D' }
+    };
+    const res = {
+      statusCode: 200,
+      status(code) {
+        this.statusCode = code;
+        return this;
+      },
+      json(data) {
+        this.body = data;
+      }
+    };
+
+    await supplyController.deletePartner(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(deletedId, 'partner-to-delete');
+    assert.equal(deletedCompany, 'Empresa D');
+  } finally {
+    Partner.findOneAndDelete = originalFindOneAndDelete;
+  }
+});
+
+test('deve cadastrar automaticamente um fornecedor inexistente durante ingestão de XML', async () => {
+  const stockController = require('../src/backend/controllers/stockController');
+  let createdPartner = null;
+  
+  const originalFindOne = Partner.findOne;
+  const originalCreate = Partner.create;
+  const originalFindOneProduct = Product.findOne;
+
+  Partner.findOne = async () => null; // Simula que não encontrou o fornecedor
+  // Mock do save do Mongoose para o Partner instanciado
+  Partner.prototype.save = async function() {
+    createdPartner = this;
+    return this;
+  };
+  Product.findOne = async () => null; // Simula produto não existente no banco
+  Product.prototype.save = async function() {
+    return this;
+  };
+
+  try {
+    const req = {
+      user: { company: 'Empresa E' },
+      body: {
+        xmlData: `
+          <nfeProc>
+            <emit>
+              <xNome>Fornecedor Novo do XML</xNome>
+              <CNPJ>12345678000199</CNPJ>
+              <fone>11999999999</fone>
+              <email>fornecedor@xml.com</email>
+            </emit>
+            <det nItem="1">
+              <xProd>Produto Teste XML</xProd>
+              <qCom>10.0</qCom>
+              <vUnCom>15.50</vUnCom>
+            </det>
+          </nfeProc>
+        `
+      }
+    };
+    const res = {
+      statusCode: 200,
+      status(code) {
+        this.statusCode = code;
+        return this;
+      },
+      json(data) {
+        this.body = data;
+      }
+    };
+
+    await stockController.importInvoiceXml(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.ok(createdPartner);
+    assert.equal(createdPartner.companyName, 'Fornecedor Novo do XML');
+    assert.equal(createdPartner.company, 'Empresa E');
+    assert.equal(createdPartner.email, 'fornecedor@xml.com');
+  } finally {
+    Partner.findOne = originalFindOne;
+    Partner.create = originalCreate;
+    Product.findOne = originalFindOneProduct;
+  }
+});
+

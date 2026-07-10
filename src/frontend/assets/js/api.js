@@ -372,5 +372,24 @@ const PartnerAPI = {
             console.error('[API Partner - Update Partner Error]:', error.message);
             throw error;
         }
+    },
+
+    deletePartner: async (id) => {
+        try {
+            const token = TokenManager.getToken();
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+
+            const response = await fetch(`${BASE_URL}/supply/partners/${id}`, {
+                method: 'DELETE',
+                headers
+            });
+            const data = await safeJsonResponse(response);
+            if (!response.ok) throw new Error(data.message || 'Erro ao excluir fornecedor.');
+            return data;
+        } catch (error) {
+            console.error('[API Partner - Delete Partner Error]:', error.message);
+            throw error;
+        }
     }
 };

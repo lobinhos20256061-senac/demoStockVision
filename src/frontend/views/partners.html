@@ -169,7 +169,7 @@
         const renderPartnerRows = (partners) => {
           if (!partners || partners.length === 0) {
             partnerTableBody.innerHTML =
-              '<tr><td colspan="4" style="text-align:center; color:var(--text-secondary);">Nenhum fornecedor cadastrado ainda.</td></tr>';
+              '<tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">Nenhum fornecedor cadastrado ainda.</td></tr>';
             return;
           }
 
@@ -181,7 +181,10 @@
               <td>${partner.categorySupplied}</td>
               <td>${partner.deliveryDays} dias</td>
               <td>${partner.priceTier}</td>
-              <td><button class="btn btn-sm btn-outline-secondary" type="button" onclick="openPartnerEditModal('${partner._id}')">✏️</button></td>
+              <td>
+                <button class="btn btn-sm btn-outline-secondary me-1" type="button" onclick="openPartnerEditModal('${partner._id}')">✏️</button>
+                <button class="btn btn-sm btn-outline-danger" type="button" onclick="deletePartner('${partner._id}')">🗑️</button>
+              </td>
             `;
             partnerTableBody.appendChild(row);
           });
@@ -194,7 +197,7 @@
             renderPartnerRows(window.__partnerCache);
           } catch (error) {
             partnerTableBody.innerHTML =
-              '<tr><td colspan="4" style="text-align:center; color:var(--color-rupture);">Falha ao carregar fornecedores.</td></tr>';
+              '<tr><td colspan="5" style="text-align:center; color:var(--color-rupture);">Falha ao carregar fornecedores.</td></tr>';
             console.error('[Partners Page] Load Partners Error:', error.message);
           }
         };
@@ -212,6 +215,22 @@
           document.getElementById('edit-partner-priceTier').value = partner.priceTier || '';
           document.getElementById('edit-partner-paymentCondition').value = partner.paymentCondition || '';
           if (editPartnerModal) editPartnerModal.show();
+        };
+
+        window.deletePartner = async (partnerId) => {
+          const partner = (window.__partnerCache || []).find((item) => item._id === partnerId);
+          if (!partner) return;
+          if (!confirm(`Deseja realmente remover o fornecedor "${partner.companyName}" permanentemente?`)) {
+            return;
+          }
+
+          try {
+            const result = await PartnerAPI.deletePartner(partnerId);
+            alert(result.message || 'Fornecedor removido com sucesso!');
+            await loadPartnerList();
+          } catch (error) {
+            alert(`Falha ao excluir fornecedor: ${error.message}`);
+          }
         };
 
         partnerForm.addEventListener('submit', async (e) => {
@@ -282,6 +301,24 @@
 
             // Renderiza o relatório reativo na tela para os alunos avaliarem o Bulk Operacional
             reportBody.innerHTML = "";
+            
+            if (result.supplierRegistered) {
+              const supplierRow = document.createElement("tr");
+              supplierRow.innerHTML = `
+                <td><strong>🤝 ${result.supplierName}</strong></td>
+                <td><span class="status-badge green">Novo Fornecedor Cadastrado Automaticamente</span></td>
+              `;
+              reportBody.appendChild(supplierRow);
+              await loadPartnerList();
+            } else if (result.supplierName) {
+              const supplierRow = document.createElement("tr");
+              supplierRow.innerHTML = `
+                <td><strong>🤝 ${result.supplierName}</strong></td>
+                <td><span class="status-badge blue">Fornecedor Existente Vinculado</span></td>
+              `;
+              reportBody.appendChild(supplierRow);
+            }
+
             result.summary.forEach((item) => {
               const row = document.createElement("tr");
               row.innerHTML = `
