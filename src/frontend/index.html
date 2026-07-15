@@ -3,14 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockVision - Redirecionando...</title>
-    <script>
-        const hasSession = Boolean(localStorage.getItem('sv_token') && localStorage.getItem('sv_user'));
-        window.location.replace(hasSession ? 'views/dashboard.html' : 'views/login.html');
-    </script>
+    <title>StockVision Demo - Iniciando...</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #111827 100%);
+            color: #f8fafc;
+            font-family: Arial, sans-serif;
+        }
+        .card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px;
+            padding: 28px 32px;
+            text-align: center;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.25);
+            max-width: 420px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 16px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
-<body style="background-color: #0f172a; color: #f8fafc; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
-    <p>Redirecionando para o painel de acesso... <br>
-    <small>Se você não for redirecionado, <a href="views/login.html" style="color: #38bdf8;">clique aqui</a>.</small></p>
+<body>
+    <div class="card">
+        <div class="spinner"></div>
+        <h2 style="margin: 0 0 8px; font-size: 1.2rem;">Iniciando a versão demo...</h2>
+        <p style="margin: 0; color: #cbd5e1;">Você será redirecionado automaticamente para o painel.</p>
+    </div>
+
+    <script src="assets/js/api.js"></script>
+    <script>
+        (async () => {
+            try {
+                const demoManager = window.createDemoSessionManager ? window.createDemoSessionManager(localStorage) : null;
+                if (demoManager && demoManager.isBlocked()) {
+                    document.body.innerHTML = '<div class="card"><h2>Demo indisponível</h2><p>A versão demo já foi utilizada e não pode ser reaberta nesta máquina.</p></div>';
+                    return;
+                }
+
+                const result = await AuthAPI.enterDemo();
+                if (result && result.active) {
+                    window.location.replace('views/dashboard.html');
+                } else {
+                    window.location.replace('views/login.html');
+                }
+            } catch (error) {
+                console.error(error);
+                window.location.replace('views/login.html');
+            }
+        })();
+    </script>
 </body>
 </html>

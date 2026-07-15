@@ -33,6 +33,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const demoEntryButton = document.getElementById('demo-enter-btn');
+    if (demoEntryButton) {
+        demoEntryButton.addEventListener('click', async () => {
+            try {
+                demoEntryButton.disabled = true;
+                demoEntryButton.innerText = 'Iniciando demo...';
+                const response = await AuthAPI.enterDemo();
+                alert(response.message || 'Demo iniciada com sucesso.');
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                alert(`Não foi possível iniciar a demo: ${error.message}`);
+                demoEntryButton.disabled = false;
+                demoEntryButton.innerText = 'Entrar na versão demo (5 minutos)';
+            }
+        });
+    }
+
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
@@ -141,15 +158,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     const alertsTableBody = document.getElementById('alerts-table-body');
     const financialChartEl = document.getElementById('financialChart');
+    const demoTimerBadge = document.getElementById('demo-timer-badge');
+    
+    const refreshDemoTimer = () => {
+        if (!demoTimerBadge) return;
+        const demoManager = createDemoSessionManager(localStorage);
+        const isDemo = localStorage.getItem('sv_demo_mode') === 'true';
+        if (!isDemo || !demoManager.isActive()) {
+            demoTimerBadge.classList.add('d-none');
+            return;
+        }
+
+        const remainingSeconds = demoManager.getRemainingSeconds();
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        demoTimerBadge.classList.remove('d-none');
+        demoTimerBadge.textContent = `Tempo demo: ${minutes}:${String(seconds).padStart(2, '0')}`;
+    };
     
     if (alertsTableBody || financialChartEl) {
         const renderDashboardData = async () => {
             try {
+                const demoManager = createDemoSessionManager(localStorage);
                 const activeUser = TokenManager.getUser();
+                const isDemo = TokenManager.isDemoMode();
                 if (!activeUser) {
                     window.location.href = 'login.html';
                     return;
                 }
+
+                if (isDemo && !demoManager.isActive()) {
+                    alert('Sua sessão demo expirou. Os dados temporários foram removidos.');
+                    demoManager.endSession();
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                refreshDemoTimer();
+                setInterval(refreshDemoTimer, 1000);
 
                 // Preencher Perfil
                 const userTitleEl = document.getElementById('user-name-display') || document.querySelector('.user-info h4') || document.querySelector('.user-info h3') || document.querySelector('h3');

@@ -50,9 +50,12 @@
               <p class="mb-0 text-muted small" id="user-company-display">Identificando organização...</p>
             </div>
           </div>
-          <button id="theme-toggle" class="btn btn-outline-secondary rounded-circle" aria-label="Alternar tema">
-            <i class="bi bi-moon-stars-fill"></i>
-          </button>
+          <div class="d-flex align-items-center gap-2">
+            <span id="demo-timer-badge" class="badge bg-warning text-dark d-none">Tempo demo: --</span>
+            <button id="theme-toggle" class="btn btn-outline-secondary rounded-circle" aria-label="Alternar tema">
+              <i class="bi bi-moon-stars-fill"></i>
+            </button>
+          </div>
         </header>
 
         <section class="hero-card rounded-4 p-4 p-md-5 mb-4">
@@ -157,8 +160,15 @@
     
     <script>
         function handleUserLogout() {
-            if (confirm("Deseja realmente encerrar a sessão corporativa?")) {
-                localStorage.clear();
+            const demoManager = window.createDemoSessionManager ? window.createDemoSessionManager(localStorage) : null;
+            const isDemo = localStorage.getItem('sv_demo_mode') === 'true';
+            const message = isDemo ? 'Deseja encerrar a sessão demo e apagar os dados temporários?' : 'Deseja realmente encerrar a sessão corporativa?';
+            if (confirm(message)) {
+                if (demoManager) {
+                    demoManager.endSession();
+                } else {
+                    localStorage.clear();
+                }
                 window.location.href = "login.html";
             }
         }
