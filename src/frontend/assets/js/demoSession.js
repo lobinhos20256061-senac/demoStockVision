@@ -8,6 +8,23 @@
     const DEFAULT_DURATION_MS = 5 * 60 * 1000;
     const DEMO_SESSION_KEY = 'sv_demo_session';
     const DEMO_BLOCKED_KEY = 'sv_demo_blocked';
+    const DEMO_DATA_KEYS = ['sv_demo_inventory', 'sv_demo_partners'];
+
+    const clearDemoArtifacts = (storage, preserveMode = false) => {
+        storage.removeItem(DEMO_SESSION_KEY);
+        storage.removeItem(DEMO_BLOCKED_KEY);
+        DEMO_DATA_KEYS.forEach((key) => storage.removeItem(key));
+        if (!preserveMode) {
+            storage.removeItem('sv_demo_mode');
+        }
+    };
+
+    const clearDemoSession = (storage) => {
+        clearDemoArtifacts(storage, true);
+        storage.removeItem('sv_token');
+        storage.removeItem('sv_user');
+        storage.removeItem('sv_demo_mode');
+    };
 
     function createMemoryStorage() {
         const store = new Map();
@@ -37,38 +54,42 @@
         const durationMs = options.durationMs || DEFAULT_DURATION_MS;
 
         const getState = () => {
-            const blocked = targetStorage.getItem(DEMO_BLOCKED_KEY) === 'true';
             const rawSession = targetStorage.getItem(DEMO_SESSION_KEY);
             if (!rawSession) {
-                return { active: false, blocked, expiresAt: null, startedAt: null, remainingMs: 0 };
+                return { active: false, blocked: false, expiresAt: null, startedAt: null, remainingMs: 0, expired: false, message: 'Nenhuma sessão demo ativa.' };
             }
 
             try {
                 const session = JSON.parse(rawSession);
                 if (!session || !session.expiresAt) {
-                    return { active: false, blocked, expiresAt: null, startedAt: null, remainingMs: 0 };
+                    return { active: false, blocked: false, expiresAt: null, startedAt: null, remainingMs: 0, expired: false, message: 'Sessão demo inválida.' };
                 }
 
                 if (nowFn() >= session.expiresAt) {
-                    targetStorage.removeItem(DEMO_SESSION_KEY);
-                    targetStorage.removeItem('sv_token');
-                    targetStorage.removeItem('sv_user');
-                    targetStorage.removeItem('sv_demo_inventory');
-                    targetStorage.removeItem('sv_demo_partners');
-                    targetStorage.removeItem('sv_demo_mode');
-                    return { active: false, blocked: false, expiresAt: session.expiresAt, startedAt: session.startedAt, remainingMs: 0 };
+                    clearDemoSession(targetStorage);
+                    return {
+                        active: false,
+                        blocked: true,
+                        expiresAt: session.expiresAt,
+                        startedAt: session.startedAt,
+                        remainingMs: 0,
+                        expired: true,
+                        message: 'A sessão demo expirou e os dados temporários foram removidos.'
+                    };
                 }
 
                 return {
                     active: true,
-                    blocked,
+                    blocked: false,
                     expiresAt: session.expiresAt,
                     startedAt: session.startedAt,
-                    remainingMs: Math.max(0, session.expiresAt - nowFn())
+                    remainingMs: Math.max(0, session.expiresAt - nowFn()),
+                    expired: false,
+                    message: 'Sessão demo ativa.'
                 };
             } catch (error) {
-                targetStorage.removeItem(DEMO_SESSION_KEY);
-                return { active: false, blocked, expiresAt: null, startedAt: null, remainingMs: 0 };
+                clearDemoSession(targetStorage);
+                return { active: false, blocked: true, expiresAt: null, startedAt: null, remainingMs: 0, expired: true, message: 'A sessão demo expirou e os dados temporários foram removidos.' };
             }
         };
 
@@ -81,8 +102,10 @@
                 expiresAt: now + durationMs
             };
 
+            clearDemoArtifacts(targetStorage);
             targetStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
             targetStorage.removeItem(DEMO_BLOCKED_KEY);
+            targetStorage.setItem('sv_demo_mode', 'true');
             return {
                 active: true,
                 expiresAt: session.expiresAt,
@@ -92,13 +115,7 @@
         };
 
         const endSession = () => {
-            targetStorage.removeItem(DEMO_SESSION_KEY);
-            targetStorage.removeItem('sv_token');
-            targetStorage.removeItem('sv_user');
-            targetStorage.removeItem('sv_demo_inventory');
-            targetStorage.removeItem('sv_demo_partners');
-            targetStorage.removeItem('sv_demo_mode');
-            targetStorage.removeItem(DEMO_BLOCKED_KEY);
+            clearDemoSession(targetStorage);
             return { active: false, blocked: false };
         };
 
@@ -116,12 +133,7 @@
         });
 
         const clearAll = () => {
-            targetStorage.removeItem(DEMO_SESSION_KEY);
-            targetStorage.removeItem(DEMO_BLOCKED_KEY);
-            targetStorage.removeItem('sv_token');
-            targetStorage.removeItem('sv_user');
-            targetStorage.removeItem('sv_demo_inventory');
-            targetStorage.removeItem('sv_demo_partners');
+            clearDemoArtifacts(targetStorage);
         };
 
         return {

@@ -38,31 +38,43 @@
 </head>
 <body>
     <div class="card">
-        <div class="spinner"></div>
-        <h2 style="margin: 0 0 8px; font-size: 1.2rem;">Iniciando a versão demo...</h2>
-        <p style="margin: 0; color: #cbd5e1;">Você será redirecionado automaticamente para o painel.</p>
+        <h2 style="margin: 0 0 8px; font-size: 1.2rem;">Versão demo do StockVision</h2>
+        <p style="margin: 0 0 16px; color: #cbd5e1; line-height: 1.5;">Explore o painel com dados de exemplo por 5 minutos. Os gráficos, o estoque e as demais funcionalidades continuam disponíveis durante a sessão.</p>
+        <button id="start-demo-btn" style="background:#38bdf8;color:#08111f;border:0;border-radius:999px;padding:12px 20px;font-weight:700;cursor:pointer;">Usar versão demo</button>
+        <p id="demo-status" style="margin: 12px 0 0; color: #cbd5e1; font-size: 0.95rem;">Clique no botão para iniciar a demonstração.</p>
     </div>
 
     <script src="assets/js/api.js"></script>
     <script>
         (async () => {
-            try {
-                const demoManager = window.createDemoSessionManager ? window.createDemoSessionManager(localStorage) : null;
-                if (demoManager && demoManager.isBlocked()) {
-                    document.body.innerHTML = '<div class="card"><h2>Demo indisponível</h2><p>A versão demo já foi utilizada e não pode ser reaberta nesta máquina.</p></div>';
-                    return;
-                }
-
-                const result = await AuthAPI.enterDemo();
-                if (result && result.active) {
-                    window.location.replace('views/dashboard.html');
-                } else {
-                    document.body.innerHTML = '<div class="card"><h2>Não foi possível iniciar a demo</h2><p>Atualize a página ou tente novamente mais tarde.</p></div>';
-                }
-            } catch (error) {
-                console.error(error);
-                document.body.innerHTML = '<div class="card"><h2>Não foi possível iniciar a demo</h2><p>Atualize a página ou tente novamente mais tarde.</p></div>';
+            const statusEl = document.getElementById('demo-status');
+            const button = document.getElementById('start-demo-btn');
+            const demoManager = window.createDemoSessionManager ? window.createDemoSessionManager(localStorage) : null;
+            if (demoManager && demoManager.isActive() && localStorage.getItem('sv_demo_mode') === 'true') {
+                window.location.replace('views/dashboard.html');
+                return;
             }
+
+            button.addEventListener('click', async () => {
+                button.disabled = true;
+                button.textContent = 'Iniciando...';
+                statusEl.textContent = 'Preparando a sessão demo...';
+                try {
+                    const result = await AuthAPI.enterDemo();
+                    if (result && result.active) {
+                        window.location.replace('views/dashboard.html');
+                    } else {
+                        statusEl.textContent = 'Não foi possível iniciar a demo. Tente novamente.';
+                        button.disabled = false;
+                        button.textContent = 'Usar versão demo';
+                    }
+                } catch (error) {
+                    console.error(error);
+                    statusEl.textContent = 'Não foi possível iniciar a demo. Tente novamente.';
+                    button.disabled = false;
+                    button.textContent = 'Usar versão demo';
+                }
+            });
         })();
     </script>
 </body>

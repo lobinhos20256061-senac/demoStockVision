@@ -22,6 +22,14 @@ test('deve iniciar uma sessão demo e expirar após o limite', () => {
   assert.equal(demo.isBlocked(), false);
 
   const expiredDemo = createDemoSessionManager(storage, { now: () => 1_700_000_000_000 + 6 * 60 * 1000 });
+  const expiredState = expiredDemo.getState();
+
   assert.equal(expiredDemo.isActive(), false);
-  assert.equal(expiredDemo.isBlocked(), true);
+  assert.equal(expiredDemo.isBlocked(), false);
+  assert.equal(expiredState.expired, true);
+  assert.match(expiredState.message, /expirou/i);
+  assert.equal(storage.getItem('sv_token'), null);
+  assert.equal(storage.getItem('sv_demo_inventory'), null);
+  assert.equal(storage.getItem('sv_demo_partners'), null);
+  assert.equal(storage.getItem('sv_demo_mode'), null);
 });

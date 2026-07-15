@@ -10,6 +10,105 @@ document.addEventListener('DOMContentLoaded', () => {
     let stockChartInstance = null;
     let currentTimelineData = null;
 
+    const getSiteTarget = () => (window.location.pathname.includes('/views/') ? '../index.html' : 'index.html');
+
+    const ensureDemoTimerBadge = () => {
+        let badge = document.getElementById('demo-timer-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.id = 'demo-timer-badge';
+            badge.className = 'badge bg-warning text-dark d-none';
+            badge.style.position = 'fixed';
+            badge.style.top = '16px';
+            badge.style.right = '16px';
+            badge.style.zIndex = '1080';
+            badge.style.padding = '10px 14px';
+            badge.style.borderRadius = '999px';
+            badge.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+            document.body.appendChild(badge);
+        }
+        return badge;
+    };
+
+    const refreshDemoTimer = () => {
+        const badge = ensureDemoTimerBadge();
+        const demoManager = createDemoSessionManager(localStorage);
+        const state = demoManager.getState();
+        const isDemo = localStorage.getItem('sv_demo_mode') === 'true';
+        if (!isDemo || !state.active) {
+            badge.style.display = 'none';
+            return;
+        }
+
+        const remainingSeconds = state.remainingMs > 0 ? Math.ceil(state.remainingMs / 1000) : 0;
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        badge.textContent = `Demo ativa • ${minutes}:${String(seconds).padStart(2, '0')}`;
+        badge.style.display = 'inline-flex';
+        badge.style.alignItems = 'center';
+    };
+
+    const showDemoExpiredOverlay = (message = 'A sessão demo expirou.') => {
+        const existing = document.getElementById('demo-expired-overlay');
+        if (existing) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'demo-expired-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.background = 'rgba(15, 23, 42, 0.9)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '2000';
+        overlay.style.padding = '20px';
+        overlay.innerHTML = `
+            <div style="background:#fff;border-radius:20px;max-width:480px;width:100%;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+                <h2 style="margin:0 0 12px;color:#0f172a;">Demo encerrada</h2>
+                <p style="margin:0 0 16px;color:#475569;line-height:1.5;">${message} Os dados temporários foram apagados.</p>
+                <button id="demo-return-btn" style="background:#2563eb;color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;cursor:pointer;">Voltar ao site</button>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
+        document.getElementById('demo-return-btn').addEventListener('click', () => {
+            window.location.href = getSiteTarget();
+        });
+    };
+
+    const handleDemoExpiration = (message = 'A sessão demo expirou.') => {
+        const demoManager = createDemoSessionManager(localStorage);
+        if (demoManager) demoManager.endSession();
+        showDemoExpiredOverlay(message);
+    };
+
+
+    const startDemoExpiryWatcher = () => {
+        if (window.__demoExpiryWatcher) return;
+        window.__demoExpiryWatcher = window.setInterval(() => {
+            const demoManager = createDemoSessionManager(localStorage);
+            const currentState = demoManager.getState();
+            if (currentState.expired || currentState.blocked) {
+                window.clearInterval(window.__demoExpiryWatcher);
+                window.__demoExpiryWatcher = null;
+                handleDemoExpiration(currentState.message);
+                return;
+            }
+            refreshDemoTimer();
+        }, 1000);
+    };
+
+    const demoState = createDemoSessionManager(localStorage).getState();
+    if (TokenManager.isDemoMode() && demoState.expired) {
+        handleDemoExpiration(demoState.message);
+    }
+
+    if (TokenManager.isDemoMode()) {
+        refreshDemoTimer();
+        startDemoExpiryWatcher();
+    }
+
     // =========================================================================
     // 1. FLUXO DE AUTENTICAÇÃO (LOGIN E CADASTRO)
     // =========================================================================
@@ -163,23 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     const alertsTableBody = document.getElementById('alerts-table-body');
     const financialChartEl = document.getElementById('financialChart');
-    const demoTimerBadge = document.getElementById('demo-timer-badge');
-    
-    const refreshDemoTimer = () => {
-        if (!demoTimerBadge) return;
-        const demoManager = createDemoSessionManager(localStorage);
-        const isDemo = localStorage.getItem('sv_demo_mode') === 'true';
-        if (!isDemo || !demoManager.isActive()) {
-            demoTimerBadge.classList.add('d-none');
-            return;
-        }
-
-        const remainingSeconds = demoManager.getRemainingSeconds();
-        const minutes = Math.floor(remainingSeconds / 60);
-        const seconds = remainingSeconds % 60;
-        demoTimerBadge.classList.remove('d-none');
-        demoTimerBadge.textContent = `Tempo demo: ${minutes}:${String(seconds).padStart(2, '0')}`;
-    };
     
     if (alertsTableBody || financialChartEl) {
         const renderDashboardData = async () => {
@@ -192,15 +274,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                if (isDemo && !demoManager.isActive()) {
-                    alert('Sua sessão demo expirou. Os dados temporários foram removidos.');
-                    demoManager.endSession();
-                    goToIndexPage();
+                const currentState = demoManager.getState();
+                if (isDemo && (!currentState.active || currentState.expired || currentState.blocked)) {
+                    handleDemoExpiration(currentState.message || 'Sua sessão demo expirou.');
                     return;
                 }
 
                 refreshDemoTimer();
-                setInterval(refreshDemoTimer, 1000);
 
                 // Preencher Perfil
                 const userTitleEl = document.getElementById('user-name-display') || document.querySelector('.user-info h4') || document.querySelector('.user-info h3') || document.querySelector('h3');
@@ -218,28 +298,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentTimelineData = historyTimeline;
 
                 // Preencher Cards (Métricas Superiores)
-                const cards = document.querySelectorAll('.card');
-                if (cards.length >= 4) {
-                    const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-                    
-                    const revEl = cards[0].querySelector('.card-title') || cards[0].querySelector('.card-value') || cards[0].querySelector('h3');
-                    const costEl = cards[1].querySelector('.card-title') || cards[1].querySelector('.card-value') || cards[1].querySelector('h3');
-                    const profEl = cards[2].querySelector('.card-title') || cards[2].querySelector('.card-value') || cards[2].querySelector('h3');
-                    const stockEl = cards[3].querySelector('.card-title') || cards[3].querySelector('.card-value') || cards[3].querySelector('h3');
+                const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+                const revenueEl = document.getElementById('metric-revenue');
+                const costsEl = document.getElementById('metric-costs');
+                const profitEl = document.getElementById('metric-profit');
+                const stockEl = document.getElementById('metric-stock');
 
-                    if (revEl) revEl.textContent = formatCurrency(financials.totalRevenue || 0);
-                    if (costEl) costEl.textContent = formatCurrency(financials.totalCosts || 0);
-                    if (stockEl) stockEl.textContent = `${(indicators.stockLevel || 0).toLocaleString('pt-BR')} un`;
-                    
-                    if (profEl) {
-                        profEl.textContent = formatCurrency(financials.estimatedProfit || 0);
-                        if (financials.estimatedProfit < 0) {
-                            profEl.classList.remove('text-success');
-                            profEl.classList.add('text-danger');
-                            cards[2].classList.replace('border-success', 'border-danger');
-                            cards[2].classList.replace('bg-success-subtle', 'bg-danger-subtle');
-                        }
-                    }
+                if (revenueEl) revenueEl.textContent = formatCurrency(financials.totalRevenue || 0);
+                if (costsEl) costsEl.textContent = formatCurrency(financials.totalCosts || 0);
+                if (stockEl) stockEl.textContent = `${(indicators.stockLevel || 0).toLocaleString('pt-BR')} un`;
+
+                if (profitEl) {
+                    profitEl.textContent = formatCurrency(financials.estimatedProfit || 0);
+                    profitEl.classList.toggle('text-danger', (financials.estimatedProfit || 0) < 0);
+                    profitEl.classList.toggle('text-success', (financials.estimatedProfit || 0) >= 0);
                 }
 
                 // Renderiza os Gráficos Chart.js

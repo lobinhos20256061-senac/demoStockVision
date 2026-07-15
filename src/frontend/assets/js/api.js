@@ -17,6 +17,20 @@ const DemoSessionRuntime = (() => {
     const DEFAULT_DURATION_MS = 5 * 60 * 1000;
     const DEMO_SESSION_KEY = 'sv_demo_session';
     const DEMO_BLOCKED_KEY = 'sv_demo_blocked';
+    const DEMO_DATA_KEYS = ['sv_demo_inventory', 'sv_demo_partners'];
+
+    const clearDemoArtifacts = (storage) => {
+        storage.removeItem(DEMO_SESSION_KEY);
+        storage.removeItem(DEMO_BLOCKED_KEY);
+        DEMO_DATA_KEYS.forEach((key) => storage.removeItem(key));
+    };
+
+    const clearDemoSession = (storage) => {
+        clearDemoArtifacts(storage);
+        storage.removeItem('sv_token');
+        storage.removeItem('sv_user');
+        storage.removeItem('sv_demo_mode');
+    };
 
     const createDemoSessionManager = (storage = localStorage, options = {}) => {
         const targetStorage = storage || localStorage;
@@ -27,29 +41,24 @@ const DemoSessionRuntime = (() => {
             const blocked = targetStorage.getItem(DEMO_BLOCKED_KEY) === 'true';
             const rawSession = targetStorage.getItem(DEMO_SESSION_KEY);
             if (!rawSession) {
-                return { active: false, blocked, expiresAt: null, startedAt: null, remainingMs: 0 };
+                return { active: false, blocked, expiresAt: null, startedAt: null, remainingMs: 0, expired: false, message: 'Nenhuma sessão demo ativa.' };
             }
 
             try {
                 const session = JSON.parse(rawSession);
                 if (!session || !session.expiresAt) {
-                    return { active: false, blocked, expiresAt: null, startedAt: null, remainingMs: 0 };
+                    return { active: false, blocked, expiresAt: null, startedAt: null, remainingMs: 0, expired: false, message: 'Sessão demo inválida.' };
                 }
 
                 if (nowFn() >= session.expiresAt) {
-                    targetStorage.removeItem(DEMO_SESSION_KEY);
-                    targetStorage.removeItem('sv_token');
-                    targetStorage.removeItem('sv_user');
-                    targetStorage.removeItem('sv_demo_inventory');
-                    targetStorage.removeItem('sv_demo_partners');
-                    targetStorage.removeItem('sv_demo_mode');
-                    return { active: false, blocked: false, expiresAt: session.expiresAt, startedAt: session.startedAt, remainingMs: 0 };
+                    clearDemoSession(targetStorage);
+                    return { active: false, blocked: false, expiresAt: session.expiresAt, startedAt: session.startedAt, remainingMs: 0, expired: true, message: 'A sessão demo expirou e os dados temporários foram removidos.' };
                 }
 
-                return { active: true, blocked, expiresAt: session.expiresAt, startedAt: session.startedAt, remainingMs: Math.max(0, session.expiresAt - nowFn()) };
+                return { active: true, blocked, expiresAt: session.expiresAt, startedAt: session.startedAt, remainingMs: Math.max(0, session.expiresAt - nowFn()), expired: false, message: 'Sessão demo ativa.' };
             } catch (error) {
-                targetStorage.removeItem(DEMO_SESSION_KEY);
-                return { active: false, blocked, expiresAt: null, startedAt: null, remainingMs: 0 };
+                clearDemoArtifacts(targetStorage);
+                return { active: false, blocked, expiresAt: null, startedAt: null, remainingMs: 0, expired: true, message: 'A sessão demo expirou e os dados temporários foram removidos.' };
             }
         };
 
@@ -57,19 +66,15 @@ const DemoSessionRuntime = (() => {
         const startSession = () => {
             const now = nowFn();
             const session = { startedAt: now, expiresAt: now + durationMs };
+            clearDemoArtifacts(targetStorage);
             targetStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
             targetStorage.removeItem(DEMO_BLOCKED_KEY);
+            targetStorage.setItem('sv_demo_mode', 'true');
             return { active: true, expiresAt: session.expiresAt, remainingMs: durationMs, message: 'Sessão demo iniciada com sucesso.' };
         };
 
         const endSession = () => {
-            targetStorage.removeItem(DEMO_SESSION_KEY);
-            targetStorage.removeItem('sv_token');
-            targetStorage.removeItem('sv_user');
-            targetStorage.removeItem('sv_demo_inventory');
-            targetStorage.removeItem('sv_demo_partners');
-            targetStorage.removeItem('sv_demo_mode');
-            targetStorage.removeItem(DEMO_BLOCKED_KEY);
+            clearDemoSession(targetStorage);
             return { active: false, blocked: false };
         };
 
@@ -187,18 +192,69 @@ const AuthAPI = {
 /**
  * 📦 MÓDULO DE OPERAÇÃO DE ESTOQUE, HISTÓRICO, ESG, PREVISÃO DE IA E XML
  */
+const buildDemoInventory = () => {
+    const pulse = Math.floor(Date.now() / 60_000) % 5;
+    const baseInventory = [
+        { _id: 'demo-1', name: 'Caixa de Embalagem', sku: 'PKG-001', category: 'Embalagem', acquisitionCost: 18.5, sellingPrice: 32.9, quantityInStock: 145, minimumStock: 50, maximumStock: 220, isIndeterminateExpiration: false, expirationDate: null, barcode: '7891234567890', supplier: 'EcoPack', location: { sector: 'A', row: '01', building: 'B', floor: '1', apartment: '01' } },
+        { _id: 'demo-2', name: 'Palete de Armazenagem', sku: 'PLT-002', category: 'Equipamento', acquisitionCost: 220, sellingPrice: 460, quantityInStock: 24, minimumStock: 12, maximumStock: 80, isIndeterminateExpiration: true, expirationDate: null, barcode: '7896541230001', supplier: 'LogiHub', location: { sector: 'C', row: '03', building: 'A', floor: '2', apartment: '05' } },
+        { _id: 'demo-3', name: 'Etiqueta RFID', sku: 'RFID-003', category: 'Tecnologia', acquisitionCost: 4.8, sellingPrice: 11.2, quantityInStock: 9, minimumStock: 20, maximumStock: 80, isIndeterminateExpiration: false, expirationDate: '2026-12-10', barcode: '7890001112223', supplier: 'TagFlow', location: { sector: 'B', row: '02', building: 'C', floor: '1', apartment: '03' } }
+    ];
+
+    return baseInventory.map((item, index) => {
+        const quantityDelta = pulse + index;
+        const adjustedQuantity = Math.max(1, item.quantityInStock + quantityDelta * 2);
+        let alertColor = 'green';
+        let statusTag = 'Estoque Normal';
+
+        if (adjustedQuantity <= item.minimumStock) {
+            alertColor = 'orange';
+            statusTag = 'Estoque Baixo';
+        } else if (adjustedQuantity <= item.minimumStock + 10) {
+            alertColor = 'blue';
+            statusTag = 'Próximo do limite';
+        }
+
+        return {
+            ...item,
+            quantityInStock: adjustedQuantity,
+            statusVisual: { alertColor, statusTag }
+        };
+    });
+};
+
+const buildDemoDashboardMetrics = (inventory = buildDemoInventory()) => {
+    const pulse = Math.floor(Date.now() / 60_000) % 6;
+    const stockLevel = inventory.reduce((sum, item) => sum + item.quantityInStock, 0);
+    const totalRevenue = 60351 + pulse * 340 + Math.round(stockLevel / 10) * 8;
+    const totalCosts = 40354 + pulse * 180 + Math.round(stockLevel / 20) * 6;
+    const estimatedProfit = totalRevenue - totalCosts;
+
+    return {
+        financials: { totalRevenue, totalCosts, estimatedProfit },
+        indicators: { stockLevel },
+        historyTimeline: {
+            months: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul'],
+            revenue: [12000 + pulse * 100, 14400 + pulse * 120, 15400 + pulse * 140, 17900 + pulse * 160, 18800 + pulse * 180, 20300 + pulse * 200, 21400 + pulse * 220],
+            costs: [9800 + pulse * 80, 10200 + pulse * 90, 11100 + pulse * 100, 11900 + pulse * 110, 12700 + pulse * 120, 13200 + pulse * 130, 14000 + pulse * 150],
+            stockLevels: [180 + pulse * 4, 210 + pulse * 5, 195 + pulse * 4, 225 + pulse * 6, 240 + pulse * 7, 250 + pulse * 8, 265 + pulse * 9]
+        }
+    };
+};
+
 const StockAPI = {
     getInventory: async () => {
-        if (TokenManager.isDemoMode() && createDemoSessionManager(localStorage).isActive()) {
+        const demoSession = createDemoSessionManager(localStorage);
+        if (TokenManager.isDemoMode() && demoSession.isActive()) {
             const storedInventory = localStorage.getItem('sv_demo_inventory');
             if (storedInventory) {
-                try { return JSON.parse(storedInventory); } catch (error) { console.warn(error); }
+                try {
+                    const parsed = JSON.parse(storedInventory);
+                    if (Array.isArray(parsed) && parsed.length) {
+                        return parsed;
+                    }
+                } catch (error) { console.warn(error); }
             }
-            const demoInventory = [
-                { _id: 'demo-1', name: 'Caixa de Embalagem', sku: 'PKG-001', category: 'Embalagem', acquisitionCost: 18.5, sellingPrice: 32.9, quantityInStock: 145, minimumStock: 50, maximumStock: 220, statusVisual: { alertColor: 'green', statusTag: 'Estoque Normal' }, isIndeterminateExpiration: false, expirationDate: null, barcode: '7891234567890', supplier: 'EcoPack', location: { sector: 'A', row: '01', building: 'B', floor: '1', apartment: '01' } },
-                { _id: 'demo-2', name: 'Palete de Armazenagem', sku: 'PLT-002', category: 'Equipamento', acquisitionCost: 220, sellingPrice: 460, quantityInStock: 24, minimumStock: 12, maximumStock: 80, statusVisual: { alertColor: 'blue', statusTag: 'Normal' }, isIndeterminateExpiration: true, expirationDate: null, barcode: '7896541230001', supplier: 'LogiHub', location: { sector: 'C', row: '03', building: 'A', floor: '2', apartment: '05' } },
-                { _id: 'demo-3', name: 'Etiqueta RFID', sku: 'RFID-003', category: 'Tecnologia', acquisitionCost: 4.8, sellingPrice: 11.2, quantityInStock: 9, minimumStock: 20, maximumStock: 80, statusVisual: { alertColor: 'orange', statusTag: 'Estoque Baixo' }, isIndeterminateExpiration: false, expirationDate: '2026-12-10', barcode: '7890001112223', supplier: 'TagFlow', location: { sector: 'B', row: '02', building: 'C', floor: '1', apartment: '03' } }
-            ];
+            const demoInventory = buildDemoInventory();
             localStorage.setItem('sv_demo_inventory', JSON.stringify(demoInventory));
             return demoInventory;
         }
@@ -216,17 +272,9 @@ const StockAPI = {
     },
 
     getDashboardMetrics: async () => {
-        if (TokenManager.isDemoMode() && createDemoSessionManager(localStorage).isActive()) {
-            return {
-                financials: { totalRevenue: 60351, totalCosts: 40354, estimatedProfit: 19997 },
-                indicators: { stockLevel: 240 },
-                historyTimeline: {
-                    months: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
-                    revenue: [12000, 14400, 15400, 17900, 18800, 20300],
-                    costs: [9800, 10200, 11100, 11900, 12700, 13200],
-                    stockLevels: [180, 210, 195, 225, 240, 250]
-                }
-            };
+        const demoSession = createDemoSessionManager(localStorage);
+        if (TokenManager.isDemoMode() && demoSession.isActive()) {
+            return buildDemoDashboardMetrics();
         }
 
         try {
@@ -466,14 +514,16 @@ const StockAPI = {
 
 const PartnerAPI = {
     getPartners: async () => {
-        if (TokenManager.isDemoMode() && createDemoSessionManager(localStorage).isActive()) {
+        const demoSession = createDemoSessionManager(localStorage);
+        if (TokenManager.isDemoMode() && demoSession.isActive()) {
             const storedPartners = localStorage.getItem('sv_demo_partners');
             if (storedPartners) {
                 try { return JSON.parse(storedPartners); } catch (error) { console.warn(error); }
             }
+            const pulse = Math.floor(Date.now() / 60_000) % 3;
             const demoPartners = [
-                { _id: 'demo-partner-1', companyName: 'EcoPack Supply', cnpj: '12.345.678/0001-90', contactName: 'Marina', phone: '(11) 3333-4444', status: 'Ativo' },
-                { _id: 'demo-partner-2', companyName: 'LogiHub', cnpj: '98.765.432/0001-10', contactName: 'Renato', phone: '(11) 9999-1111', status: 'Em revisão' }
+                { _id: 'demo-partner-1', companyName: 'EcoPack Supply', cnpj: '12.345.678/0001-90', contactName: 'Marina', phone: '(11) 3333-4444', status: pulse === 0 ? 'Ativo' : pulse === 1 ? 'Em revisão' : 'Em análise' },
+                { _id: 'demo-partner-2', companyName: 'LogiHub', cnpj: '98.765.432/0001-10', contactName: 'Renato', phone: '(11) 9999-1111', status: pulse === 0 ? 'Em revisão' : pulse === 1 ? 'Ativo' : 'Ativo' }
             ];
             localStorage.setItem('sv_demo_partners', JSON.stringify(demoPartners));
             return demoPartners;
