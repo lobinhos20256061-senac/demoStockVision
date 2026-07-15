@@ -40,8 +40,10 @@ const DemoSessionRuntime = (() => {
                     targetStorage.removeItem(DEMO_SESSION_KEY);
                     targetStorage.removeItem('sv_token');
                     targetStorage.removeItem('sv_user');
-                    targetStorage.setItem(DEMO_BLOCKED_KEY, 'true');
-                    return { active: false, blocked: true, expiresAt: session.expiresAt, startedAt: session.startedAt, remainingMs: 0 };
+                    targetStorage.removeItem('sv_demo_inventory');
+                    targetStorage.removeItem('sv_demo_partners');
+                    targetStorage.removeItem('sv_demo_mode');
+                    return { active: false, blocked: false, expiresAt: session.expiresAt, startedAt: session.startedAt, remainingMs: 0 };
                 }
 
                 return { active: true, blocked, expiresAt: session.expiresAt, startedAt: session.startedAt, remainingMs: Math.max(0, session.expiresAt - nowFn()) };
@@ -53,10 +55,6 @@ const DemoSessionRuntime = (() => {
 
         const isBlocked = () => getState().blocked;
         const startSession = () => {
-            if (isBlocked()) {
-                return { active: false, blocked: true, message: 'A versão demo já foi utilizada e não pode ser reaberta nesta máquina.' };
-            }
-
             const now = nowFn();
             const session = { startedAt: now, expiresAt: now + durationMs };
             targetStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
@@ -71,8 +69,8 @@ const DemoSessionRuntime = (() => {
             targetStorage.removeItem('sv_demo_inventory');
             targetStorage.removeItem('sv_demo_partners');
             targetStorage.removeItem('sv_demo_mode');
-            targetStorage.setItem(DEMO_BLOCKED_KEY, 'true');
-            return { active: false, blocked: true };
+            targetStorage.removeItem(DEMO_BLOCKED_KEY);
+            return { active: false, blocked: false };
         };
 
         const isActive = () => getState().active;
