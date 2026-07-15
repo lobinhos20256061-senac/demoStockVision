@@ -3,10 +3,10 @@
 * Executa imediatamente para bloquear acessos não autorizados e limpar cache de histórico.
 */
 (() => {
-    const publicPages = ['login.html', 'register.html', 'index.html'];
+    const publicPages = ['index.html'];
     const currentPath = window.location.pathname.split('/').pop() || 'index.html';
     const hasSession = Boolean(localStorage.getItem('sv_token') && localStorage.getItem('sv_user'));
-    const baseFolder = window.location.pathname.includes('/views/') ? '' : 'views/';
+    const baseFolder = window.location.pathname.includes('/views/') ? '../' : '';
 
     const redirectTo = (target) => {
         const finalTarget = target.startsWith('http') ? target : `${baseFolder}${target}`;
@@ -22,7 +22,7 @@
         }
 
         if (!hasSession) {
-            redirectTo('login.html');
+            redirectTo('index.html');
         }
     };
 

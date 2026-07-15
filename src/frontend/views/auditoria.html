@@ -93,10 +93,17 @@
     <script src="../assets/js/main.js"></script>
     <script>
       function handleUserLogout() {
-        if (confirm("Deseja realmente registrar saída da sessão corporativa?")) {
-          localStorage.removeItem("sv_token");
-          localStorage.removeItem("sv_user");
-          window.location.href = "login.html";
+        const demoManager = window.createDemoSessionManager ? window.createDemoSessionManager(localStorage) : null;
+        const isDemo = localStorage.getItem('sv_demo_mode') === 'true';
+        const message = isDemo ? 'Deseja encerrar a sessão demo e apagar os dados temporários?' : 'Deseja realmente registrar saída da sessão corporativa?';
+        if (confirm(message)) {
+          if (demoManager) {
+            demoManager.endSession();
+          } else {
+            localStorage.removeItem("sv_token");
+            localStorage.removeItem("sv_user");
+          }
+          window.location.href = "../index.html";
         }
       }
       let currentSheetItems = [];

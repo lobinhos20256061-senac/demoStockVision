@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. FLUXO DE AUTENTICAÇÃO (LOGIN E CADASTRO)
     // =========================================================================
     const loginForm = document.getElementById('login-form');
+    const goToIndexPage = () => {
+        const isInViews = window.location.pathname.includes('/views/');
+        window.location.href = isInViews ? '../index.html' : 'index.html';
+    };
+
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -183,14 +188,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const activeUser = TokenManager.getUser();
                 const isDemo = TokenManager.isDemoMode();
                 if (!activeUser) {
-                    window.location.href = 'login.html';
+                    goToIndexPage();
                     return;
                 }
 
                 if (isDemo && !demoManager.isActive()) {
                     alert('Sua sessão demo expirou. Os dados temporários foram removidos.');
                     demoManager.endSession();
-                    window.location.href = 'login.html';
+                    goToIndexPage();
                     return;
                 }
 

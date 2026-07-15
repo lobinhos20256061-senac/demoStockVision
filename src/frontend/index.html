@@ -57,11 +57,11 @@
                 if (result && result.active) {
                     window.location.replace('views/dashboard.html');
                 } else {
-                    window.location.replace('views/login.html');
+                    document.body.innerHTML = '<div class="card"><h2>Não foi possível iniciar a demo</h2><p>Atualize a página ou tente novamente mais tarde.</p></div>';
                 }
             } catch (error) {
                 console.error(error);
-                window.location.replace('views/login.html');
+                document.body.innerHTML = '<div class="card"><h2>Não foi possível iniciar a demo</h2><p>Atualize a página ou tente novamente mais tarde.</p></div>';
             }
         })();
     </script>
