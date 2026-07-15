@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StockVision - Auditoria de Estoque</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="../assets/css/modern.css" />
+    <link rel="shortcut icon" href="../assets/icons/icon-stockVision.png" type="image/png">
+
+  </head>
+  <body>
+    <div class="app-shell d-flex flex-column flex-md-row">
+      <aside class="sidebar-panel offcanvas-md offcanvas-start d-flex flex-column p-3 p-md-4" id="sidebarMenu" tabindex="-1">
+        <div class="sidebar-brand p-3 mb-4 text-center">
+          <h2 class="fw-bold fs-4 mb-1 text-primary">StockVision</h2>
+          <p class="text-muted small mb-0">Auditoria e conciliação operacional</p>
+        </div>
+        <ul class="sidebar-nav nav nav-pills flex-column gap-1 mb-auto">
+          <li class="nav-item"><a href="dashboard.html" class="nav-link"><i class="bi bi-bar-chart-fill me-2"></i> Dashboard</a></li>
+          <li class="nav-item"><a href="stock.html" class="nav-link"><i class="bi bi-box-seam me-2"></i> Estoque</a></li>
+          <li class="nav-item"><a href="demand.html" class="nav-link"><i class="bi bi-graph-up-arrow me-2"></i> Previsão de Demanda</a></li>
+          <li class="nav-item"><a href="partners.html" class="nav-link"><i class="bi bi-people-fill me-2"></i> Pedidos & Fornecedores</a></li>
+          <li class="nav-item"><a href="reverse.html" class="nav-link"><i class="bi bi-arrow-repeat me-2"></i> Logística Reversa</a></li>
+          <li class="nav-item"><a href="esg.html" class="nav-link"><i class="bi bi-tree-fill me-2"></i> Sustentabilidade (ESG)</a></li>
+          <li class="nav-item"><a href="auditoria.html" class="nav-link active"><i class="bi bi-clipboard-check-fill me-2"></i> Auditoria de Estoque</a></li>
+        </ul>
+        <a href="#" onclick="handleUserLogout()" class="btn btn-outline-danger mt-3"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
+      </aside>
+
+      <main class="flex-grow-1 p-3 p-md-4">
+        <header class="topbar rounded-4 p-3 p-md-4 mb-4 d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+              <i class="bi bi-list"></i>
+            </button>
+            <div>
+              <h3 class="mb-0 fw-bold">⚖️ Central de Auditoria de Estoque</h3>
+              <p class="mb-0 text-muted small" id="company-name-display">Carregando governança de auditoria...</p>
+            </div>
+          </div>
+          <button id="theme-toggle" class="btn btn-outline-secondary rounded-circle" aria-label="Alternar tema"><i class="bi bi-moon-stars-fill"></i></button>
+        </header>
+
+        <section class="card border-0 shadow-sm rounded-4 mb-4">
+          <div class="card-body">
+            <div class="row g-3 align-items-end">
+              <div class="col-12 col-lg-8"><input type="text" id="filter-sector" class="form-control" placeholder="📍 Digite o setor para contagem (Ex: RECEBIMENTO, A, B)..."></div>
+              <div class="col-12 col-lg-4"><button class="btn btn-primary w-100" onclick="triggerRotativeSearch()">📋 Gerar Folha Cega</button></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="row g-4">
+          <section class="col-12 col-xl-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+              <div class="card-body">
+                <h4 class="fw-bold mb-3">📝 Folha de contagem de campo</h4>
+                <form id="audit-form">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                      <thead class="table-light"><tr><th>Material / SKU</th><th>Endereço WMS</th><th>Qtd Física Contada</th></tr></thead>
+                      <tbody id="rotative-sheet-body"><tr><td colspan="3" class="text-center text-muted py-4">Gere a folha de contagem filtrada acima.</td></tr></tbody>
+                    </table>
+                  </div>
+                  <button type="submit" id="btn-submit-audit" class="btn btn-primary mt-3 w-100" style="display:none;">⚖️ Processar Auditoria e Conciliar Banco</button>
+                </form>
+              </div>
+            </div>
+          </section>
+          <section class="col-12 col-xl-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+              <div class="card-body">
+                <h4 class="fw-bold mb-3">📊 Resultado da apuração de divergências</h4>
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Item</th><th>Desvio</th><th>Impacto Financeiro</th><th>Resultado</th></tr></thead>
+                    <tbody id="audit-report-body"><tr><td colspan="4" class="text-center text-muted py-4">Aguardando submissão física...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/authGuard.js"></script>
+    <script src="../assets/js/theme.js"></script>
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/main.js"></script>
+    <script>
+      function handleUserLogout() {
+        if (confirm("Deseja realmente registrar saída da sessão corporativa?")) {
+          localStorage.removeItem("sv_token");
+          localStorage.removeItem("sv_user");
+          window.location.href = "login.html";
+        }
+      }
+      let currentSheetItems = [];
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const activeUser = TokenManager.getUser();
+        if (activeUser) {
+          document.getElementById("company-name-display").innerText =
+            `Auditoria Interna: ${activeUser.company}`;
+        }
+      });
+
+      // Dispara a busca e monta a folha cega de contagem
+      const triggerRotativeSearch = async () => {
+        const sectorVal = document.getElementById("filter-sector").value.trim();
+        const sheetBody = document.getElementById("rotative-sheet-body");
+        const submitBtn = document.getElementById("btn-submit-audit");
+
+        try {
+          sheetBody.innerHTML =
+            '<tr><td colspan="3" style="text-align: center;">Mapeando endereços...</td></tr>';
+          const data = await StockAPI.getRotativeSheet("", sectorVal);
+          currentSheetItems = data;
+
+          sheetBody.innerHTML = "";
+          if (data.length === 0) {
+            sheetBody.innerHTML =
+              '<tr><td colspan="3" style="text-align: center;">Nenhum item localizado no setor informado.</td></tr>';
+            submitBtn.style.display = "none";
+            return;
+          }
+
+          data.forEach((item) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                        <td><strong>📦 ${item.name}</strong><br><small style="color:var(--text-secondary)">SKU: ${item.sku}</small></td>
+                        <td style="font-family:monospace; font-size:0.85rem;">${item.location}</td>
+                        <td>
+                            <input type="number" class="physical-input" data-id="${item._id}" required min="0" value="0" 
+                                   style="width:100%; padding:0.4rem; border-radius:4px; border:2px solid #cbd5e1; background:#ececec; color:#1e293b; font-weight:bold; text-align:center;">
+                        </td>
+                    `;
+            sheetBody.appendChild(row);
+          });
+
+          submitBtn.style.display = "block";
+        } catch (e) {
+          sheetBody.innerHTML =
+            '<tr><td colspan="3" style="text-align: center; color:var(--color-error)">Erro ao ler dados de conferência.</td></tr>';
+        }
+      };
+
+      // Envio do formulário de auditoria (Confronto e Balanço)
+      document
+        .getElementById("audit-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const inputs = document.querySelectorAll(".physical-input");
+          const countedItems = [];
+
+          inputs.forEach((input) => {
+            countedItems.push({
+              productId: input.getAttribute("data-id"),
+              physicalQty: input.value,
+            });
+          });
+
+          try {
+            const result = await StockAPI.submitInventoryAudit(countedItems);
+            alert(result.message || "Auditoria processada!");
+
+            const reportBody = document.getElementById("audit-report-body");
+            reportBody.innerHTML = "";
+
+            result.report.forEach((item) => {
+              const row = document.createElement("tr");
+              const formatCurrency = (v) =>
+                new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(v);
+
+              let badgeColor = "green";
+              if (item.divergenceQty < 0) badgeColor = "red";
+              if (item.divergenceQty > 0) badgeColor = "orange";
+
+              row.innerHTML = `
+                        <td><strong>${item.name}</strong></td>
+                        <td style="font-weight:bold; text-align:center;">${item.divergenceQty > 0 ? `+${item.divergenceQty}` : item.divergenceQty} un</td>
+                        <td style="font-family:monospace; font-weight:bold; color:${item.financialImpact < 0 ? "#dc3545" : "var(--color-esg)"}">
+                            ${formatCurrency(item.financialImpact)}
+                        </td>
+                        <td><span class="status-badge ${badgeColor}">${item.status}</span></td>
+                    `;
+              reportBody.appendChild(row);
+            });
+
+            // Oculta o botão de envio e limpa a folha para nova rodada
+            document.getElementById("btn-submit-audit").style.display = "none";
+            document.getElementById("rotative-sheet-body").innerHTML =
+              '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">Inventário processado com sucesso. Defina outro setor acima.</td></tr>';
+          } catch (error) {
+            alert(`Erro ao conciliar dados: ${error.message}`);
+          }
+        });
+    </script>
+  </body>
+</html>

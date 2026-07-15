@@ -238,6 +238,23 @@ const StockAPI = {
     },
 
     /**
+     * 🌱 BUSCAR PAINEL E METRICAS ESG COMPLETAS
+     * GET -> /api/esg/dashboard
+     */
+    getEsgDashboard: async () => {
+        try {
+            const token = TokenManager.getToken();
+            const response = await fetch(`${BASE_URL}/esg/dashboard`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao carregar painel ESG.');
+            return data;
+        } catch (error) { throw error; }
+    },
+
+    /**
      * ♻️ DAR ENTRADA EM FLUXO DE DEVOLUÇÃO / LOGÍSTICA REVERSA
      * POST -> /api/reverse/return
      */
@@ -333,6 +350,45 @@ const PartnerAPI = {
             return data;
         } catch (error) {
             console.error('[API Partner - Create Partner Error]:', error.message);
+            throw error;
+        }
+    },
+
+    updatePartner: async (id, partnerPayload) => {
+        try {
+            const token = TokenManager.getToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+
+            const response = await fetch(`${BASE_URL}/supply/partners/${id}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(partnerPayload)
+            });
+            const data = await safeJsonResponse(response);
+            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar fornecedor.');
+            return data;
+        } catch (error) {
+            console.error('[API Partner - Update Partner Error]:', error.message);
+            throw error;
+        }
+    },
+
+    deletePartner: async (id) => {
+        try {
+            const token = TokenManager.getToken();
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+
+            const response = await fetch(`${BASE_URL}/supply/partners/${id}`, {
+                method: 'DELETE',
+                headers
+            });
+            const data = await safeJsonResponse(response);
+            if (!response.ok) throw new Error(data.message || 'Erro ao excluir fornecedor.');
+            return data;
+        } catch (error) {
+            console.error('[API Partner - Delete Partner Error]:', error.message);
             throw error;
         }
     }

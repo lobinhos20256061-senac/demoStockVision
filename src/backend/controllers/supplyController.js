@@ -20,9 +20,8 @@ exports.generateAutomatedOrders = async (req, res) => {
         let automatedOrderList = [];
 
         for (let product of products) {
-            // MOCK DE HISTÓRICO: Simula as saídas das últimas 4 semanas (Períodos analisados)
-            // Em uma estrutura expandida, essas variáveis viriam de uma tabela de 'SalesHistory'
-            const historicoSaidasSemanais = 0
+            // HISTÓRICO DE VENDAS: Extrai as saídas do histórico do produto para simular IA de tendência
+            const historicoSaidasSemanais = product.salesHistory && product.salesHistory.length > 0 ? product.salesHistory : [0, 0, 0];
             const somaVendas = historicoSaidasSemanais.reduce((acc, v) => acc + v, 0);
             
             // FÓRMULA LOGÍSTICA: Previsão de Demanda Simples
@@ -37,8 +36,8 @@ exports.generateAutomatedOrders = async (req, res) => {
                 if (quantidadeIdealCompra <= 0) continue;
 
                 // 2. MOTOR DE SELEÇÃO DE FORNECEDORES (IA DO ENUNCIADO)
-                // Busca fornecedores homologados para a categoria específica deste produto
-                const candidatePartners = await Partner.find({ categorySupplied: product.category });
+                // Busca fornecedores homologados para a categoria específica deste produto e da empresa logada
+                const candidatePartners = await Partner.find({ categorySupplied: product.category, company: companyName });
 
                 let selectedPartner = null;
 
@@ -54,7 +53,7 @@ exports.generateAutomatedOrders = async (req, res) => {
                         return pesoPreco[a.priceTier] - pesoPreco[b.priceTier];
                     });
                     
-                    selectedPartner = candidatePartners; // Seleciona o melhor pontuado
+                    selectedPartner = candidatePartners[0]; // Seleciona o melhor pontuado (primeiro elemento do array)
                 }
 
                 // Determina datas com base nos prazos do fornecedor eleito
@@ -100,7 +99,8 @@ exports.generateAutomatedOrders = async (req, res) => {
  */
 exports.listPartners = async (req, res) => {
     try {
-        const partners = await Partner.find().sort({ companyName: 1 });
+        const companyName = req.user?.company;
+        const partners = await Partner.find({ company: companyName }).sort({ companyName: 1 });
         return res.status(200).json(partners);
     } catch (error) {
         return res.status(500).json({ message: 'Erro ao buscar fornecedores.', error: error.message });
@@ -112,9 +112,41 @@ exports.listPartners = async (req, res) => {
  */
 exports.createPartner = async (req, res) => {
     try {
-        const newPartner = await Partner.create(req.body);
+        const companyName = req.user?.company;
+        const newPartner = await Partner.create({
+            ...req.body,
+            company: companyName
+        });
         return res.status(201).json({ message: 'Fornecedor cadastrado com sucesso para cotações!', partner: newPartner });
     } catch (error) {
         return res.status(400).json({ message: 'Erro ao cadastrar fornecedor.', error: error.message });
     }
 };
+
+exports.updatePartner = async (req, res) => {
+    try {
+        const partner = await Partner.findOne({ _id: req.params.id, company: req.user?.company });
+        if (!partner) {
+            return res.status(404).json({ message: 'Fornecedor não localizado para esta empresa.' });
+        }
+
+        Object.assign(partner, req.body, { company: req.user?.company });
+        await partner.save();
+
+        return res.status(200).json({ message: 'Fornecedor atualizado com sucesso!', partner });
+    } catch (error) {
+        return res.status(400).json({ message: 'Erro ao atualizar fornecedor.', error: error.message });
+    }
+};
+
+exports.deletePartner = async (req, res) => {
+    try {
+        const partner = await Partner.findOneAndDelete({ _id: req.params.id, company: req.user?.company });
+        if (!partner) {
+            return res.status(404).json({ message: 'Fornecedor não localizado para exclusão nesta empresa.' });
+        }
+        return res.status(200).json({ message: 'Fornecedor removido com sucesso!' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Erro ao remover fornecedor.', error: error.message });
+    }
+};

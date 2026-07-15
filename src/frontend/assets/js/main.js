@@ -279,10 +279,41 @@ document.addEventListener('DOMContentLoaded', () => {
         window.openEditModal = (id) => {
             const prod = localProductsCache.find(p => p._id === id);
             if (!prod) return;
-            document.getElementById('edit-id').value = prod._id;
-            document.getElementById('edit-name').value = prod.name;
-            document.getElementById('edit-quantity').value = prod.quantityInStock;
-            document.getElementById('edit-price').value = prod.sellingPrice;
+            const setValue = (idValue, value) => {
+                const el = document.getElementById(idValue);
+                if (el) el.value = value ?? '';
+            };
+            const setChecked = (idValue, value) => {
+                const el = document.getElementById(idValue);
+                if (el) el.checked = !!value;
+            };
+
+            setValue('edit-id', prod._id);
+            setValue('edit-name', prod.name);
+            setValue('edit-category', prod.category || '');
+            setValue('edit-acquisitionCost', prod.acquisitionCost ?? 0);
+            setValue('edit-quantity', prod.quantityInStock ?? 0);
+            setValue('edit-price', prod.sellingPrice ?? 0);
+            setValue('edit-minimumStock', prod.minimumStock ?? 0);
+            setValue('edit-maximumStock', prod.maximumStock ?? 0);
+            setValue('edit-supplier', prod.supplier || '');
+            setValue('edit-barcode', prod.barcode || '');
+            setChecked('edit-isIndeterminateExpiration', prod.isIndeterminateExpiration);
+            const expirationDate = prod.expirationDate ? new Date(prod.expirationDate).toISOString().slice(0, 10) : '';
+            setValue('edit-expirationDate', expirationDate);
+            const loc = prod.location || {};
+            setValue('edit-sector', loc.sector || '');
+            setValue('edit-row', loc.row || '');
+            setValue('edit-building', loc.building || '');
+            setValue('edit-floor', loc.floor || '');
+            setValue('edit-apartment', loc.apartment || '');
+            const expirationContainer = document.getElementById('edit-expiration-container');
+            const expirationInput = document.getElementById('edit-expirationDate');
+            const expirationCheckbox = document.getElementById('edit-isIndeterminateExpiration');
+            if (expirationContainer && expirationInput && expirationCheckbox) {
+                expirationInput.disabled = expirationCheckbox.checked;
+                expirationContainer.style.display = expirationCheckbox.checked ? 'none' : 'block';
+            }
             if (editModal) editModal.show();
         };
 
@@ -395,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     maximumStock: parseInt(document.getElementById('maximumStock').value, 10),
                     isIndeterminateExpiration: document.getElementById('isIndeterminateExpiration').checked,
                     expirationDate: document.getElementById('expirationDate').value || null,
+                    barcode: document.getElementById('barcode').value.trim(),
                     location: {
                         sector: document.getElementById('sector').value.trim(),
                         row: document.getElementById('row').value.trim(),
@@ -420,8 +452,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 const id = document.getElementById('edit-id').value;
                 const updatedFields = {
                     name: document.getElementById('edit-name').value.trim(),
-                    quantityInStock: parseInt(document.getElementById('edit-quantity').value, 10),
-                    sellingPrice: parseFloat(document.getElementById('edit-price').value)
+                    category: document.getElementById('edit-category').value.trim(),
+                    acquisitionCost: parseFloat(document.getElementById('edit-acquisitionCost').value || 0),
+                    sellingPrice: parseFloat(document.getElementById('edit-price').value || 0),
+                    quantityInStock: parseInt(document.getElementById('edit-quantity').value || 0, 10),
+                    minimumStock: parseInt(document.getElementById('edit-minimumStock').value || 0, 10),
+                    maximumStock: parseInt(document.getElementById('edit-maximumStock').value || 0, 10),
+                    supplier: document.getElementById('edit-supplier').value.trim(),
+                    barcode: document.getElementById('edit-barcode').value.trim(),
+                    isIndeterminateExpiration: document.getElementById('edit-isIndeterminateExpiration').checked,
+                    expirationDate: document.getElementById('edit-isIndeterminateExpiration').checked ? null : document.getElementById('edit-expirationDate').value || null,
+                    location: {
+                        sector: document.getElementById('edit-sector').value.trim(),
+                        row: document.getElementById('edit-row').value.trim(),
+                        building: document.getElementById('edit-building').value.trim(),
+                        floor: document.getElementById('edit-floor').value.trim(),
+                        apartment: document.getElementById('edit-apartment').value.trim()
+                    }
                 };
 
                 try {
@@ -434,5 +481,154 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         loadInventoryTable();
+
+        // =========================================================================
+        // 5. LEITOR DE CÓDIGO DE BARRAS (USB E CÂMERA COM QUAGGAJS)
+        // =========================================================================
+        const barcodeModalEl = document.getElementById('barcode-scanner-modal');
+        const barcodeModal = barcodeModalEl ? bootstrap.Modal.getOrCreateInstance(barcodeModalEl) : null;
+        let isCameraRunning = false;
+        let activeTab = 'camera';
+
+        window.openBarcodeScannerModal = () => {
+            if (barcodeModal) {
+                barcodeModal.show();
+                activeTab = 'camera';
+                // Espera o modal renderizar para iniciar a câmera ou focar o input
+                setTimeout(() => {
+                    initQuagga();
+                }, 500);
+            }
+        };
+
+        window.closeBarcodeScannerModal = () => {
+            stopQuagga();
+            if (barcodeModal) barcodeModal.hide();
+        };
+
+        window.onScannerTabChange = (tabName) => {
+            activeTab = tabName;
+            if (tabName === 'camera') {
+                document.getElementById('scanner-device-input').blur();
+                initQuagga();
+            } else {
+                stopQuagga();
+                const deviceInput = document.getElementById('scanner-device-input');
+                if (deviceInput) {
+                    deviceInput.value = '';
+                    deviceInput.focus();
+                }
+            }
+        };
+
+        // Tratamento para leitor físico (USB/Bluetooth que digita o texto e envia Enter)
+        const deviceInputEl = document.getElementById('scanner-device-input');
+        if (deviceInputEl) {
+            deviceInputEl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const code = deviceInputEl.value.trim();
+                    if (code) {
+                        handleBarcodeDetected(code);
+                        deviceInputEl.value = '';
+                    }
+                }
+            });
+        }
+
+        // Função de busca e direcionamento baseada no código lido
+        const handleBarcodeDetected = (code) => {
+            // Fecha o modal do scanner
+            closeBarcodeScannerModal();
+
+            // Procura o produto no cache local (por barcode ou por SKU)
+            const product = localProductsCache.find(p => p.barcode === code || p.sku === code);
+
+            if (product) {
+                // Produto encontrado: abre o modal de edição dele
+                alert(`Produto identificado: "${product.name}"`);
+                window.openEditModal(product._id);
+            } else {
+                // Produto não cadastrado
+                if (confirm(`Produto com o código "${code}" não localizado no inventário.\nDeseja cadastrar um novo produto com este código de barras?`)) {
+                    window.openCreateModal();
+                    // Preenche o campo de código de barras no formulário de criação
+                    const barcodeInput = document.getElementById('barcode');
+                    if (barcodeInput) {
+                        barcodeInput.value = code;
+                    }
+                }
+            }
+        };
+
+        // Inicialização do QuaggaJS para leitura via Webcam/Câmera
+        const initQuagga = () => {
+            if (isCameraRunning) return;
+            const statusEl = document.getElementById('camera-status');
+            if (statusEl) statusEl.textContent = 'Inicializando câmera...';
+
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#interactive'),
+                    constraints: {
+                        width: 640,
+                        height: 480,
+                        facingMode: "environment" // Usa a câmera traseira do celular se disponível
+                    },
+                },
+                decoder: {
+                    readers: [
+                        "code_128_reader",
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_39_reader",
+                        "code_39_vin_reader",
+                        "codabar_reader",
+                        "upc_reader",
+                        "upc_e_reader",
+                        "i2of5_reader"
+                    ]
+                }
+            }, (err) => {
+                if (err) {
+                    console.error('[Quagga Init Error]:', err);
+                    if (statusEl) statusEl.textContent = 'Erro ao acessar câmera: permissão negada ou ausente.';
+                    return;
+                }
+                isCameraRunning = true;
+                Quagga.start();
+                if (statusEl) statusEl.textContent = 'Câmera operacional. Posicione o código.';
+            });
+
+            // Listener de decodificação com validação de consistência
+            let detectedCodesBuffer = [];
+            Quagga.onDetected((result) => {
+                const code = result.codeResult.code;
+                if (code) {
+                    detectedCodesBuffer.push(code);
+                    
+                    // Exige 3 detecções idênticas consecutivas para evitar falsos positivos
+                    if (detectedCodesBuffer.length >= 3) {
+                        const allEqual = detectedCodesBuffer.every(val => val === detectedCodesBuffer[0]);
+                        if (allEqual) {
+                            Quagga.offDetected();
+                            handleBarcodeDetected(detectedCodesBuffer[0]);
+                        }
+                        detectedCodesBuffer = [];
+                    }
+                }
+            });
+        };
+
+        const stopQuagga = () => {
+            if (isCameraRunning) {
+                Quagga.stop();
+                isCameraRunning = false;
+                const statusEl = document.getElementById('camera-status');
+                if (statusEl) statusEl.textContent = 'Câmera desativada.';
+            }
+        };
     }
 });

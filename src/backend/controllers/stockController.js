@@ -48,7 +48,7 @@ exports.listProducts = async (req, res) => {
  */
 exports.createProduct = async (req, res) => {
     try {
-        const { name, category, acquisitionCost, sellingPrice, quantityInStock, minimumStock, maximumStock, isIndeterminateExpiration, expirationDate, location } = req.body;
+        const { name, category, acquisitionCost, sellingPrice, quantityInStock, minimumStock, maximumStock, isIndeterminateExpiration, expirationDate, location, barcode } = req.body;
 
         // Geração de SKU incremental baseado em Timestamp para simulação de código de barras
         const generatedSku = `SKU-${Date.now()}`;
@@ -56,6 +56,7 @@ exports.createProduct = async (req, res) => {
         const newProduct = new Product({
             company: req.user.company, // Vincula à empresa do token logado
             sku: generatedSku,
+            barcode: barcode || generatedSku,
             name,
             category,
             acquisitionCost,
@@ -185,6 +186,33 @@ exports.importInvoiceXml = async (req, res) => {
         const emitNomeMatch = xmlData.match(/<emit>[\s\S]*?<xNome>([\s\S]*?)<\/xNome>/);
         const supplierName = emitNomeMatch ? emitNomeMatch[1].trim() : "Fornecedor XML";
 
+        // Auto-cadastro do Fornecedor caso não exista no banco
+        const Partner = require('../models/Partner');
+        const cnpjMatch = xmlData.match(/<emit>[\s\S]*?<CNPJ>([\s\S]*?)<\/CNPJ>/);
+        const cnpj = cnpjMatch ? cnpjMatch[1].trim() : '';
+        const foneMatch = xmlData.match(/<emit>[\s\S]*?<fone>([\s\S]*?)<\/fone>/);
+        const phone = foneMatch ? foneMatch[1].trim() : '(11) 99999-9999';
+        const emailMatch = xmlData.match(/<emit>[\s\S]*?<email>([\s\S]*?)<\/email>/) || xmlData.match(/<email>([\s\S]*?)<\/email>/);
+        const email = emailMatch ? emailMatch[1].trim() : `contato@${supplierName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'fornecedor'}.com.br`;
+
+        let partner = await Partner.findOne({ companyName: supplierName, company: req.user.company });
+        let supplierRegistered = false;
+
+        if (!partner) {
+            partner = new Partner({
+                company: req.user.company,
+                companyName: supplierName,
+                phone: phone,
+                email: email,
+                paymentCondition: 'Boleto',
+                deliveryDays: 7,
+                priceTier: 'Médio',
+                categorySupplied: 'Importado via NF-e'
+            });
+            await partner.save();
+            supplierRegistered = true;
+        }
+
         // Isolamento de todos os blocos de produtos detalhados (<det>)
         const productBlocks = xmlData.match(/<det nItem=".*?">[\s\S]*?<\/det>/g);
 
@@ -246,7 +274,9 @@ exports.importInvoiceXml = async (req, res) => {
 
         return res.status(200).json({
             message: `Nota Fiscal do fornecedor "${supplierName}" processada com sucesso!`,
-            summary: processedItems
+            summary: processedItems,
+            supplierName,
+            supplierRegistered
         });
 
     } catch (error) {

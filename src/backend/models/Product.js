@@ -11,6 +11,7 @@ const LocationSchema = new mongoose.Schema({
 const ProductSchema = new mongoose.Schema({
     company: { type: String, required: [true, 'A empresa é obrigatória.'], trim: true },
     sku: { type: String, trim: true },
+    barcode: { type: String, trim: true },
     name: { type: String, required: [true, 'O nome do produto é obrigatório.'], trim: true },
     category: { type: String, trim: true, default: 'Geral' },
     sellingPrice: { type: Number, required: [true, 'O preço de venda é obrigatório.'], min: 0 },
