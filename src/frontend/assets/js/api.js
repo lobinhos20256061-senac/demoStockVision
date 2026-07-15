@@ -112,7 +112,11 @@ const TokenManager = {
         return rawUser ? JSON.parse(rawUser) : null;
     },
     saveDemoMode: (value) => localStorage.setItem('sv_demo_mode', String(value)),
-    isDemoMode: () => localStorage.getItem('sv_demo_mode') === 'true',
+    isDemoMode: () => {
+        const explicitMode = localStorage.getItem('sv_demo_mode') === 'true';
+        const sessionActive = createDemoSessionManager(localStorage).isActive();
+        return explicitMode || sessionActive;
+    },
     clearAll: () => {
         localStorage.removeItem('sv_token');
         localStorage.removeItem('sv_user');
@@ -192,24 +196,54 @@ const AuthAPI = {
 /**
  * 📦 MÓDULO DE OPERAÇÃO DE ESTOQUE, HISTÓRICO, ESG, PREVISÃO DE IA E XML
  */
-const buildDemoInventory = () => {
-    const pulse = Math.floor(Date.now() / 60_000) % 5;
-    const baseInventory = [
-        { _id: 'demo-1', name: 'Caixa de Embalagem', sku: 'PKG-001', category: 'Embalagem', acquisitionCost: 18.5, sellingPrice: 32.9, quantityInStock: 145, minimumStock: 50, maximumStock: 220, isIndeterminateExpiration: false, expirationDate: null, barcode: '7891234567890', supplier: 'EcoPack', location: { sector: 'A', row: '01', building: 'B', floor: '1', apartment: '01' } },
-        { _id: 'demo-2', name: 'Palete de Armazenagem', sku: 'PLT-002', category: 'Equipamento', acquisitionCost: 220, sellingPrice: 460, quantityInStock: 24, minimumStock: 12, maximumStock: 80, isIndeterminateExpiration: true, expirationDate: null, barcode: '7896541230001', supplier: 'LogiHub', location: { sector: 'C', row: '03', building: 'A', floor: '2', apartment: '05' } },
-        { _id: 'demo-3', name: 'Etiqueta RFID', sku: 'RFID-003', category: 'Tecnologia', acquisitionCost: 4.8, sellingPrice: 11.2, quantityInStock: 9, minimumStock: 20, maximumStock: 80, isIndeterminateExpiration: false, expirationDate: '2026-12-10', barcode: '7890001112223', supplier: 'TagFlow', location: { sector: 'B', row: '02', building: 'C', floor: '1', apartment: '03' } }
-    ];
+const DEMO_BASE_INVENTORY = [
+    { _id: 'demo-1', name: 'Caixa de Embalagem', sku: 'PKG-001', category: 'Embalagem', acquisitionCost: 18.5, sellingPrice: 32.9, quantityInStock: 145, minimumStock: 50, maximumStock: 220, isIndeterminateExpiration: false, expirationDate: null, barcode: '7891234567890', supplier: 'EcoPack', location: { sector: 'A', row: '01', building: 'B', floor: '1', apartment: '01' } },
+    { _id: 'demo-2', name: 'Palete de Armazenagem', sku: 'PLT-002', category: 'Equipamento', acquisitionCost: 220, sellingPrice: 460, quantityInStock: 24, minimumStock: 12, maximumStock: 80, isIndeterminateExpiration: true, expirationDate: null, barcode: '7896541230001', supplier: 'LogiHub', location: { sector: 'C', row: '03', building: 'A', floor: '2', apartment: '05' } },
+    { _id: 'demo-3', name: 'Etiqueta RFID', sku: 'RFID-003', category: 'Tecnologia', acquisitionCost: 4.8, sellingPrice: 11.2, quantityInStock: 9, minimumStock: 20, maximumStock: 80, isIndeterminateExpiration: false, expirationDate: '2026-12-10', barcode: '7890001112223', supplier: 'TagFlow', location: { sector: 'B', row: '02', building: 'C', floor: '1', apartment: '03' } }
+];
 
-    return baseInventory.map((item, index) => {
-        const quantityDelta = pulse + index;
-        const adjustedQuantity = Math.max(1, item.quantityInStock + quantityDelta * 2);
+const buildDemoInventory = () => {
+    const now = Date.now();
+    const pulse = Math.floor(now / 30_000) % 5;
+    const sessionState = createDemoSessionManager(localStorage).getState();
+    const startedAt = sessionState.startedAt || now;
+    const elapsedMinutes = Math.max(0, Math.floor((now - startedAt) / 60_000));
+
+    const storedInventory = localStorage.getItem('sv_demo_inventory');
+    let inventory = [];
+    if (storedInventory) {
+        try {
+            const parsed = JSON.parse(storedInventory);
+            if (Array.isArray(parsed) && parsed.length) {
+                inventory = parsed;
+            }
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+
+    if (inventory.length === 0) {
+        inventory = DEMO_BASE_INVENTORY.slice();
+    }
+
+    return inventory.map((item, index) => {
+        if (item.userCreated) {
+            return {
+                ...item,
+                statusVisual: item.statusVisual || { alertColor: 'green', statusTag: 'Estoque Normal' }
+            };
+        }
+
+        const baseQuantity = Number(item.quantityInStock || 0);
+        const delta = ((pulse + index + elapsedMinutes) % 7) - 3;
+        const adjustedQuantity = Math.max(1, baseQuantity + delta * 2 + (elapsedMinutes % 3));
         let alertColor = 'green';
         let statusTag = 'Estoque Normal';
 
-        if (adjustedQuantity <= item.minimumStock) {
+        if (adjustedQuantity <= (item.minimumStock || 0)) {
             alertColor = 'orange';
             statusTag = 'Estoque Baixo';
-        } else if (adjustedQuantity <= item.minimumStock + 10) {
+        } else if (adjustedQuantity <= (item.minimumStock || 0) + 10) {
             alertColor = 'blue';
             statusTag = 'Próximo do limite';
         }
@@ -223,20 +257,28 @@ const buildDemoInventory = () => {
 };
 
 const buildDemoDashboardMetrics = (inventory = buildDemoInventory()) => {
-    const pulse = Math.floor(Date.now() / 60_000) % 6;
-    const stockLevel = inventory.reduce((sum, item) => sum + item.quantityInStock, 0);
-    const totalRevenue = 60351 + pulse * 340 + Math.round(stockLevel / 10) * 8;
-    const totalCosts = 40354 + pulse * 180 + Math.round(stockLevel / 20) * 6;
+    const now = Date.now();
+    const pulse = Math.floor(now / 30_000) % 6;
+    const stockLevel = inventory.reduce((sum, item) => sum + (Number(item.quantityInStock) || 0), 0);
+    const totalRevenue = Math.round(inventory.reduce((sum, item) => sum + (Number(item.sellingPrice) || 0) * (Number(item.quantityInStock) || 0), 0) * (1 + pulse * 0.01));
+    const totalCosts = Math.round(inventory.reduce((sum, item) => sum + (Number(item.acquisitionCost) || 0) * (Number(item.quantityInStock) || 0), 0) * (1 + pulse * 0.005));
     const estimatedProfit = totalRevenue - totalCosts;
+
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul'];
+    const baseRevenue = Math.max(totalRevenue * 0.7, 12000);
+    const baseCosts = Math.max(totalCosts * 0.7, 9000);
+    const revenue = months.map((_, index) => Math.round(baseRevenue * (0.95 + index * 0.03) + pulse * 250 + stockLevel * 1.4));
+    const costs = months.map((_, index) => Math.round(baseCosts * (0.96 + index * 0.02) + pulse * 180 + stockLevel * 0.9));
+    const stockLevels = months.map((_, index) => Math.max(0, Math.round(stockLevel * (0.9 + index * 0.02) + pulse * 3 + index * 5)));
 
     return {
         financials: { totalRevenue, totalCosts, estimatedProfit },
         indicators: { stockLevel },
         historyTimeline: {
-            months: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul'],
-            revenue: [12000 + pulse * 100, 14400 + pulse * 120, 15400 + pulse * 140, 17900 + pulse * 160, 18800 + pulse * 180, 20300 + pulse * 200, 21400 + pulse * 220],
-            costs: [9800 + pulse * 80, 10200 + pulse * 90, 11100 + pulse * 100, 11900 + pulse * 110, 12700 + pulse * 120, 13200 + pulse * 130, 14000 + pulse * 150],
-            stockLevels: [180 + pulse * 4, 210 + pulse * 5, 195 + pulse * 4, 225 + pulse * 6, 240 + pulse * 7, 250 + pulse * 8, 265 + pulse * 9]
+            months,
+            revenue,
+            costs,
+            stockLevels
         }
     };
 };
@@ -245,15 +287,6 @@ const StockAPI = {
     getInventory: async () => {
         const demoSession = createDemoSessionManager(localStorage);
         if (TokenManager.isDemoMode() && demoSession.isActive()) {
-            const storedInventory = localStorage.getItem('sv_demo_inventory');
-            if (storedInventory) {
-                try {
-                    const parsed = JSON.parse(storedInventory);
-                    if (Array.isArray(parsed) && parsed.length) {
-                        return parsed;
-                    }
-                } catch (error) { console.warn(error); }
-            }
             const demoInventory = buildDemoInventory();
             localStorage.setItem('sv_demo_inventory', JSON.stringify(demoInventory));
             return demoInventory;
@@ -305,7 +338,12 @@ const StockAPI = {
     createProduct: async (productPayload) => {
         if (TokenManager.isDemoMode() && createDemoSessionManager(localStorage).isActive()) {
             const inventory = JSON.parse(localStorage.getItem('sv_demo_inventory') || '[]');
-            const newProduct = { _id: `demo-${Date.now()}`, ...productPayload, statusVisual: { alertColor: 'green', statusTag: 'Estoque Normal' } };
+            const newProduct = {
+                _id: `demo-${Date.now()}`,
+                ...productPayload,
+                userCreated: true,
+                statusVisual: { alertColor: 'green', statusTag: 'Estoque Normal' }
+            };
             inventory.push(newProduct);
             localStorage.setItem('sv_demo_inventory', JSON.stringify(inventory));
             return { success: true, product: newProduct, message: 'Produto adicionado à demo.' };
@@ -517,16 +555,30 @@ const PartnerAPI = {
         const demoSession = createDemoSessionManager(localStorage);
         if (TokenManager.isDemoMode() && demoSession.isActive()) {
             const storedPartners = localStorage.getItem('sv_demo_partners');
+            let demoPartners = [];
             if (storedPartners) {
-                try { return JSON.parse(storedPartners); } catch (error) { console.warn(error); }
+                try {
+                    const parsed = JSON.parse(storedPartners);
+                    if (Array.isArray(parsed) && parsed.length) {
+                        demoPartners = parsed;
+                    }
+                } catch (error) { console.warn(error); }
             }
+
+            if (demoPartners.length === 0) {
+                demoPartners = [
+                    { _id: 'demo-partner-1', companyName: 'EcoPack Supply', cnpj: '12.345.678/0001-90', contactName: 'Marina', phone: '(11) 3333-4444', status: 'Ativo' },
+                    { _id: 'demo-partner-2', companyName: 'LogiHub', cnpj: '98.765.432/0001-10', contactName: 'Renato', phone: '(11) 9999-1111', status: 'Em revisão' }
+                ];
+            }
+
             const pulse = Math.floor(Date.now() / 60_000) % 3;
-            const demoPartners = [
-                { _id: 'demo-partner-1', companyName: 'EcoPack Supply', cnpj: '12.345.678/0001-90', contactName: 'Marina', phone: '(11) 3333-4444', status: pulse === 0 ? 'Ativo' : pulse === 1 ? 'Em revisão' : 'Em análise' },
-                { _id: 'demo-partner-2', companyName: 'LogiHub', cnpj: '98.765.432/0001-10', contactName: 'Renato', phone: '(11) 9999-1111', status: pulse === 0 ? 'Em revisão' : pulse === 1 ? 'Ativo' : 'Ativo' }
-            ];
-            localStorage.setItem('sv_demo_partners', JSON.stringify(demoPartners));
-            return demoPartners;
+            const nextPartners = demoPartners.map((partner, index) => ({
+                ...partner,
+                status: index === 0 ? (pulse === 0 ? 'Ativo' : pulse === 1 ? 'Em revisão' : 'Em análise') : (pulse === 0 ? 'Em revisão' : pulse === 1 ? 'Ativo' : 'Ativo')
+            }));
+            localStorage.setItem('sv_demo_partners', JSON.stringify(nextPartners));
+            return nextPartners;
         }
 
         try {

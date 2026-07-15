@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
 const Product = require('../src/backend/models/Product');
 const Partner = require('../src/backend/models/Partner');
 const supplyController = require('../src/backend/controllers/supplyController');
@@ -22,6 +24,64 @@ test('deve permitir cadastro de produto sem endereçamento obrigatório', () => 
     floor: 'Não Alocado',
     apartment: 'Não Alocado'
   });
+});
+
+test('deve cadastrar produto na lista local da demo mesmo sem a flag sv_demo_mode explícita', async () => {
+  class MemoryStorage {
+    constructor() {
+      this.store = new Map();
+    }
+    getItem(key) {
+      return this.store.has(key) ? this.store.get(key) : null;
+    }
+    setItem(key, value) {
+      this.store.set(key, String(value));
+    }
+    removeItem(key) {
+      this.store.delete(key);
+    }
+  }
+
+  const storage = new MemoryStorage();
+  const context = {
+    window: { location: { protocol: 'file:', origin: 'http://localhost' } },
+    localStorage: storage,
+    console,
+    Date,
+    setTimeout,
+    clearTimeout,
+    fetch: async () => ({ ok: false, json: async () => ({ message: 'fallback' }) })
+  };
+
+  vm.createContext(context);
+  const apiCode = fs.readFileSync('./src/frontend/assets/js/api.js', 'utf8');
+  vm.runInContext(apiCode, context);
+  const tokenManager = vm.runInContext('TokenManager', context);
+  const stockApi = vm.runInContext('StockAPI', context);
+
+  storage.setItem('sv_token', 'demo-token');
+  storage.setItem('sv_user', JSON.stringify({ fullname: 'Demo', company: 'Demo', role: 'demo' }));
+  storage.setItem('sv_demo_session', JSON.stringify({ startedAt: Date.now(), expiresAt: Date.now() + 300000 }));
+
+  assert.equal(tokenManager.isDemoMode(), true);
+
+  const created = await stockApi.createProduct({
+    name: 'Produto Demo Teste',
+    category: 'Teste',
+    acquisitionCost: 10,
+    sellingPrice: 20,
+    quantityInStock: 7,
+    minimumStock: 2,
+    maximumStock: 15,
+    isIndeterminateExpiration: false,
+    expirationDate: null,
+    barcode: '123456',
+    location: { sector: 'A', row: '1', building: 'B', floor: '1', apartment: '1' }
+  });
+
+  const inventory = await stockApi.getInventory();
+  assert.equal(created.success, true);
+  assert.ok(inventory.some((item) => item.name === 'Produto Demo Teste'));
 });
 
 test('deve filtrar fornecedores pela empresa autenticada', async () => {

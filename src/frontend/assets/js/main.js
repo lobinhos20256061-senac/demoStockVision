@@ -34,9 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const badge = ensureDemoTimerBadge();
         const demoManager = createDemoSessionManager(localStorage);
         const state = demoManager.getState();
-        const isDemo = localStorage.getItem('sv_demo_mode') === 'true';
+        const isDemo = TokenManager.isDemoMode();
         if (!isDemo || !state.active) {
-            badge.style.display = 'none';
+            badge.classList.add('d-none');
+            badge.classList.remove('d-inline-flex');
             return;
         }
 
@@ -44,8 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const minutes = Math.floor(remainingSeconds / 60);
         const seconds = remainingSeconds % 60;
         badge.textContent = `Demo ativa • ${minutes}:${String(seconds).padStart(2, '0')}`;
-        badge.style.display = 'inline-flex';
-        badge.style.alignItems = 'center';
+        badge.classList.remove('d-none');
+        badge.classList.add('d-inline-flex');
     };
 
     const showDemoExpiredOverlay = (message = 'A sessão demo expirou.') => {
